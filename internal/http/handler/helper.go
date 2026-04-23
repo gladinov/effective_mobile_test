@@ -1,168 +1,70 @@
 package handler
 
 import (
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gladinov/e"
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
 func getQueryForTotal(c echo.Context) (filterTotal, error) {
 	var filter filterTotal
 
-	userID, err := userIdFromQueryParams(c)
+	userID, err := stringFromQueryParam(userID, c, ErrUserIDEmpty, ErrUserIDMultipleValues)
 	if err != nil {
 		return filterTotal{}, e.WrapIfErr("parse user_id query param", err)
 	}
 	filter.UserID = userID
 
-	serviceName, err := serviceNameFromQueryParam(c)
+	serviceName, err := stringFromQueryParam(serviceName, c, ErrServiceNameEmpty, ErrServiceNameMultipleValues)
 	if err != nil {
 		return filterTotal{}, e.WrapIfErr("parse service_name query param", err)
 	}
 	filter.ServiceName = serviceName
 
-	fromPeriod, err := getYearMonthFromQueryParams(fromYear, fromMonth, c)
+	fromPeriod, err := stringFromQueryParam(fromDate, c, ErrDateEmpty, ErrDateMultipleValues)
 	if err != nil {
-		return filterTotal{}, e.WrapIfErr("parse from period query params", err)
+		return filterTotal{}, e.WrapIfErr("parse from query param", err)
 	}
-
 	filter.From = fromPeriod
 
-	toPeriod, err := getYearMonthFromQueryParams(toYear, toMonth, c)
+	toPeriod, err := stringFromQueryParam(toDate, c, ErrDateEmpty, ErrDateMultipleValues)
 	if err != nil {
-		return filterTotal{}, e.WrapIfErr("parse to period query params", err)
+		return filterTotal{}, e.WrapIfErr("parse to query param", err)
+	}
+	filter.To = toPeriod
+
+	domainFilter, err := filter.ToDomain()
+	if err != nil {
+		return filterTotal{}, err
 	}
 
-	filter.To = toPeriod
+	if domainFilter.From != nil && domainFilter.To != nil &&
+		domainFilter.To.CountOfMonth() < domainFilter.From.CountOfMonth() {
+		return filterTotal{}, ErrEndDateBeforeStart
+	}
 
 	return filter, nil
 }
 
-func userIdFromQueryParams(c echo.Context) (*uuid.UUID, error) {
-	values, exist := c.QueryParams()[userID]
-	if !exist {
+func stringFromQueryParam(param string, c echo.Context, emptyErr, multipleErr error) (*string, error) {
+	values, exists := c.QueryParams()[param]
+	if !exists {
 		return nil, nil
 	}
 
 	if len(values) > 1 {
-		return nil, ErrUserIDMultipleValues
+		return nil, multipleErr
 	}
 
 	if len(values) == 0 {
-		return nil, ErrUserIDEmpty
+		return nil, emptyErr
 	}
 
-	v := strings.TrimSpace(values[0])
-	if v == "" {
-		return nil, ErrUserIDEmpty
+	value := strings.TrimSpace(values[0])
+	if value == "" {
+		return nil, emptyErr
 	}
 
-	id, err := uuid.Parse(v)
-	if err != nil {
-		return nil, ErrInvalidUUID
-	}
-
-	return &id, nil
-}
-
-func serviceNameFromQueryParam(c echo.Context) (*string, error) {
-	values, exist := c.QueryParams()[serviceName]
-	if !exist {
-		return nil, nil
-	}
-	if len(values) > 1 {
-		return nil, ErrServiceNameMultipleValues
-	}
-
-	if len(values) == 0 {
-		return nil, ErrServiceNameEmpty
-	}
-
-	v := strings.TrimSpace(values[0])
-	if v == "" {
-		return nil, ErrServiceNameEmpty
-	}
-
-	return &v, nil
-}
-
-func getYearMonthFromQueryParams(yearParam, monthParam string, c echo.Context) (*yearMonth, error) {
-	yearValues, yearExists := c.QueryParams()[yearParam]
-	monthValues, monthExists := c.QueryParams()[monthParam]
-
-	switch {
-	case !yearExists && !monthExists:
-		return nil, nil
-	case !yearExists:
-		return nil, ErrYearRequired
-	case !monthExists:
-		return nil, ErrMonthRequired
-	}
-
-	year, err := parseYear(yearValues)
-	if err != nil {
-		return nil, err
-	}
-
-	month, err := parseMonth(monthValues)
-	if err != nil {
-		return nil, err
-	}
-
-	return &yearMonth{
-		Year:  year,
-		Month: time.Month(month),
-	}, nil
-}
-
-func parseYear(values []string) (int, error) {
-	if len(values) > 1 {
-		return 0, ErrYearMultipleValues
-	}
-
-	if len(values) == 0 {
-		return 0, ErrYearEmpty
-	}
-
-	v := strings.TrimSpace(values[0])
-	if v == "" {
-		return 0, ErrYearEmpty
-	}
-
-	year, err := strconv.Atoi(v)
-	if err != nil {
-		return 0, ErrYearInvalid
-	}
-
-	return year, nil
-}
-
-func parseMonth(values []string) (int, error) {
-	if len(values) > 1 {
-		return 0, ErrMonthMultipleValues
-	}
-
-	if len(values) == 0 {
-		return 0, ErrMonthEmpty
-	}
-
-	v := strings.TrimSpace(values[0])
-	if v == "" {
-		return 0, ErrMonthEmpty
-	}
-
-	month, err := strconv.Atoi(v)
-	if err != nil {
-		return 0, ErrMonthInvalid
-	}
-
-	if month < 1 || month > 12 {
-		return 0, ErrMonthOutOfRange
-	}
-
-	return month, nil
+	return &value, nil
 }

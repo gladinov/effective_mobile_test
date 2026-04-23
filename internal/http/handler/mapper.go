@@ -8,13 +8,26 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func mapYearMonthPtrToDomain(y *yearMonth) *domain.YearMonth {
-	if y == nil {
-		return nil
-	}
-	return &domain.YearMonth{
-		Year:  y.Year,
-		Month: y.Month,
+func mapSubscriptionRequestError(err error) error {
+	switch {
+	case errors.Is(err, ErrInvalidUUID):
+		return echo.NewHTTPError(http.StatusBadRequest, "user_id must be a valid UUID")
+	case errors.Is(err, ErrServiceNameRequired):
+		return echo.NewHTTPError(http.StatusBadRequest, "service_name must not be empty")
+	case errors.Is(err, ErrPriceInvalid):
+		return echo.NewHTTPError(http.StatusBadRequest, "price must be greater than zero")
+	case errors.Is(err, ErrStartDateRequired):
+		return echo.NewHTTPError(http.StatusBadRequest, "start_date is required")
+	case errors.Is(err, ErrDateEmpty):
+		return echo.NewHTTPError(http.StatusBadRequest, "date must not be empty")
+	case errors.Is(err, ErrDateInvalidFormat):
+		return echo.NewHTTPError(http.StatusBadRequest, "date must be in MM-YYYY format")
+	case errors.Is(err, ErrMonthOutOfRange):
+		return echo.NewHTTPError(http.StatusBadRequest, "month must be between 1 and 12")
+	case errors.Is(err, ErrEndDateBeforeStart):
+		return echo.NewHTTPError(http.StatusBadRequest, "end_date must not be before start_date")
+	default:
+		return echo.NewHTTPError(http.StatusBadRequest, errInvalidRequestBody)
 	}
 }
 
@@ -24,35 +37,8 @@ func mapDomainSubToDTOSubResponce(domainSub domain.Subscription) subscriptionRes
 		ServiceName: domainSub.ServiceName,
 		Price:       domainSub.Price,
 		UserID:      domainSub.UserID,
-		StartDate:   MapDomainYearMonthToDto(domainSub.StartDate),
-		EndDate:     MapDomainYearMonthPtrToDtoPtr(domainSub.EndDate),
-	}
-}
-
-func MapDomainYearMonthToDto(date domain.YearMonth) yearMonth {
-	return yearMonth{
-		Year:  date.Year,
-		Month: date.Month,
-	}
-}
-
-func MapDomainYearMonthPtrToDtoPtr(date *domain.YearMonth) *yearMonth {
-	if date == nil {
-		return nil
-	}
-	return &yearMonth{
-		Year:  date.Year,
-		Month: date.Month,
-	}
-}
-
-func mapYearMonthPtrToDomainPtr(date *yearMonth) *domain.YearMonth {
-	if date == nil {
-		return nil
-	}
-	return &domain.YearMonth{
-		Year:  date.Year,
-		Month: date.Month,
+		StartDate:   formatYearMonth(domainSub.StartDate),
+		EndDate:     formatYearMonthPtr(domainSub.EndDate),
 	}
 }
 
@@ -73,32 +59,20 @@ func mapTotalQueryError(err error) error {
 	case errors.Is(err, ErrServiceNameMultipleValues):
 		return echo.NewHTTPError(http.StatusBadRequest, "service_name must be specified once")
 
-	case errors.Is(err, ErrYearRequired):
-		return echo.NewHTTPError(http.StatusBadRequest, "year is required when month is provided")
+	case errors.Is(err, ErrDateEmpty):
+		return echo.NewHTTPError(http.StatusBadRequest, "date must not be empty")
 
-	case errors.Is(err, ErrMonthRequired):
-		return echo.NewHTTPError(http.StatusBadRequest, "month is required when year is provided")
+	case errors.Is(err, ErrDateInvalidFormat):
+		return echo.NewHTTPError(http.StatusBadRequest, "date must be in MM-YYYY format")
 
-	case errors.Is(err, ErrYearEmpty):
-		return echo.NewHTTPError(http.StatusBadRequest, "year must not be empty")
-
-	case errors.Is(err, ErrMonthEmpty):
-		return echo.NewHTTPError(http.StatusBadRequest, "month must not be empty")
-
-	case errors.Is(err, ErrYearInvalid):
-		return echo.NewHTTPError(http.StatusBadRequest, "year must be a valid integer")
-
-	case errors.Is(err, ErrMonthInvalid):
-		return echo.NewHTTPError(http.StatusBadRequest, "month must be a valid integer")
-
-	case errors.Is(err, ErrYearMultipleValues):
-		return echo.NewHTTPError(http.StatusBadRequest, "year must be specified once")
-
-	case errors.Is(err, ErrMonthMultipleValues):
-		return echo.NewHTTPError(http.StatusBadRequest, "month must be specified once")
+	case errors.Is(err, ErrDateMultipleValues):
+		return echo.NewHTTPError(http.StatusBadRequest, "date query param must be specified once")
 
 	case errors.Is(err, ErrMonthOutOfRange):
 		return echo.NewHTTPError(http.StatusBadRequest, "month must be between 1 and 12")
+
+	case errors.Is(err, ErrEndDateBeforeStart):
+		return echo.NewHTTPError(http.StatusBadRequest, "to must not be before from")
 
 	default:
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid query parameters")
