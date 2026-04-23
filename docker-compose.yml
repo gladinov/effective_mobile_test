@@ -5,6 +5,7 @@ services:
       dockerfile: ./deployments/docker/app.Dockerfile
     container_name: app
     restart: unless-stopped
+    stop_grace_period: 15s
     depends_on:
       postgres-db:
         condition: service_healthy
@@ -19,6 +20,15 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       PGUSER: ${PGUSER}
       SSLMODE: ${SSLMODE}
+      HTTP_READ_HEADER_TIMEOUT: ${HTTP_READ_HEADER_TIMEOUT}
+      HTTP_READ_TIMEOUT: ${HTTP_READ_TIMEOUT}
+      HTTP_WRITE_TIMEOUT: ${HTTP_WRITE_TIMEOUT}
+      HTTP_IDLE_TIMEOUT: ${HTTP_IDLE_TIMEOUT}
+      HTTP_SHUTDOWN_TIMEOUT: ${HTTP_SHUTDOWN_TIMEOUT}
+      APP_CLOSE_TIMEOUT: ${APP_CLOSE_TIMEOUT}
+      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT}
+      DB_QUERY_TIMEOUT: ${DB_QUERY_TIMEOUT}
+      DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT}
     ports:
       - "${PORT}:8080"
     networks:

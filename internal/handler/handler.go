@@ -29,14 +29,16 @@ type Handler interface {
 }
 
 type handler struct {
-	logger  *slog.Logger
-	service Service
+	service        Service
+	requestTimeout time.Duration
+	logger         *slog.Logger
 }
 
-func NewHandler(logger *slog.Logger, service Service) *handler {
+func NewHandler(logger *slog.Logger, service Service, requestTimeout time.Duration) *handler {
 	return &handler{
-		logger:  logger,
-		service: service,
+		logger:         logger,
+		service:        service,
+		requestTimeout: requestTimeout,
 	}
 }
 
@@ -68,8 +70,7 @@ type Service interface {
 
 func (h *handler) Create(c echo.Context) error {
 	ctx := c.Request().Context()
-	// TODO: Подобрать таймауты
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
 	defer cancel()
 
 	var subsReq subscriptionRequest
@@ -93,8 +94,7 @@ func (h *handler) Create(c echo.Context) error {
 
 func (h *handler) Get(c echo.Context) error {
 	ctx := c.Request().Context()
-	// TODO: Подобрать таймауты
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
 	defer cancel()
 
 	id := c.Param("id")
@@ -118,8 +118,7 @@ func (h *handler) Get(c echo.Context) error {
 
 func (h *handler) Update(c echo.Context) error {
 	ctx := c.Request().Context()
-	// TODO: Подобрать таймауты
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
 	defer cancel()
 
 	id := c.Param("id")
@@ -149,8 +148,7 @@ func (h *handler) Update(c echo.Context) error {
 
 func (h *handler) Delete(c echo.Context) error {
 	ctx := c.Request().Context()
-	// TODO: Подобрать таймауты
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
 	defer cancel()
 
 	id := c.Param("id")
@@ -172,8 +170,7 @@ func (h *handler) Delete(c echo.Context) error {
 
 func (h *handler) List(c echo.Context) error {
 	ctx := c.Request().Context()
-	// TODO: Подобрать таймауты
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
 	defer cancel()
 
 	domainSubs, err := h.service.List(ctx)
@@ -193,8 +190,7 @@ func (h *handler) List(c echo.Context) error {
 
 func (h *handler) Total(c echo.Context) error {
 	ctx := c.Request().Context()
-	// TODO: Подобрать таймауты
-	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
 	defer cancel()
 
 	filterTotal, err := h.getQueryForTotal(c)
