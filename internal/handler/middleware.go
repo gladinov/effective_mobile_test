@@ -8,7 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func (h *Handler) LoggerMiddleWare(next echo.HandlerFunc) echo.HandlerFunc {
+func (h *handler) LoggerMiddleWare(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) (err error) {
 		logg := h.logger.With(
 			slog.String("component", "middleware/logger"),
