@@ -203,12 +203,7 @@ func (h *handler) Total(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
 	defer cancel()
 
-	filterDTO, err := getQueryForTotal(c)
-	if err != nil {
-		return mapTotalQueryError(err)
-	}
-
-	domainFilter, err := filterDTO.ToDomain()
+	domainFilter, err := getQueryForTotal(c)
 	if err != nil {
 		return mapTotalQueryError(err)
 	}
