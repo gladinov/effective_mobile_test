@@ -21,8 +21,9 @@ func (s *Service) setStartPayMonth(filter domain.FilterTotal, sub domain.Subscri
 	var startPayMonth domain.YearMonth
 	if filter.From != nil {
 		startPayMonth = maxYearMonth(sub.StartDate, *filter.From)
+	} else {
+		startPayMonth = sub.StartDate
 	}
-	startPayMonth = sub.StartDate
 	return startPayMonth
 }
 
