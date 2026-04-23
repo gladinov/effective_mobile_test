@@ -68,7 +68,7 @@ func (s *Storage) getRowByID(ctx context.Context, subID uuid.UUID) (subscription
 	sub, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[subscriptionRow])
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return subscriptionRow{}, ErrSubscriptionNotFound
+			return subscriptionRow{}, domain.ErrSubscriptionNotFound
 		}
 		return subscriptionRow{}, e.WrapIfErr("failed to collect one row", err)
 	}
@@ -96,7 +96,7 @@ func (s *Storage) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Su
 		return e.WrapIfErr("failed to execute update query", err)
 	}
 	if tag.RowsAffected() == 0 {
-		return ErrSubscriptionNotFound
+		return domain.ErrSubscriptionNotFound
 	}
 
 	return nil
@@ -119,7 +119,7 @@ func (s *Storage) DeleteByID(ctx context.Context, subID uuid.UUID) error {
 	}
 
 	if tag.RowsAffected() == 0 {
-		return ErrSubscriptionNotFound
+		return domain.ErrSubscriptionNotFound
 	}
 
 	return nil
@@ -162,7 +162,7 @@ func (s *Storage) listRows(ctx context.Context) ([]subscriptionRow, error) {
 	return subs, nil
 }
 
-func (s *Storage) GetFiltredSubs(ctx context.Context, filter domain.FilterTotal) ([]domain.Subscription, error) {
+func (s *Storage) GetFilteredSubs(ctx context.Context, filter domain.FilterTotal) ([]domain.Subscription, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
 	defer cancel()
 	// TODO: check from > to

@@ -53,7 +53,7 @@ func (d *diContainer) DB() service.Storage {
 func (d *diContainer) Service() handler.Service {
 	if d.service == nil {
 		d.logger.Info("create new service")
-		service := service.NewService(d.logger, d.DB())
+		service := service.NewService(d.DB())
 		d.service = service
 	}
 	return d.service
