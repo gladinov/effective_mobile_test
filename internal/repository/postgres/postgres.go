@@ -11,12 +11,14 @@ import (
 )
 
 type Storage struct {
-	db *pgxpool.Pool
+	dbQueryTimeout time.Duration
+	db             *pgxpool.Pool
 }
 
-func NewStorage(db *pgxpool.Pool) *Storage {
+func NewStorage(db *pgxpool.Pool, dbQueryTimeout time.Duration) *Storage {
 	return &Storage{
-		db: db,
+		dbQueryTimeout: dbQueryTimeout,
+		db:             db,
 	}
 }
 

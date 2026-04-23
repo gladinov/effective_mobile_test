@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/gladinov/effective_mobile_test_assignment/internal/closer"
 	"github.com/gladinov/effective_mobile_test_assignment/internal/config"
@@ -56,11 +55,12 @@ func (a *App) initDiContainer() {
 
 func (a *App) initHTTPServer() {
 	a.httpServer = &http.Server{
-		Addr:         a.config.Server.GetServerAddress(),
-		Handler:      a.diContainer.Handler().Routes(),
-		WriteTimeout: 10 * time.Second,
-		ReadTimeout:  10 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:              a.config.Server.GetServerAddress(),
+		Handler:           a.diContainer.Handler().Routes(),
+		ReadHeaderTimeout: a.config.Server.ReadHeaderTimeout,
+		WriteTimeout:      a.config.Server.WriteTimeout,
+		ReadTimeout:       a.config.Server.ReadTimeout,
+		IdleTimeout:       a.config.Server.IdleTimeout,
 	}
 }
 
@@ -73,19 +73,29 @@ func (a *App) Run() error {
 		slog.String("server_host", a.config.Server.Host),
 		slog.String("server_port", a.config.Server.Port))
 
+	errCh := make(chan error, 1)
+
 	go func() {
 		if err := a.httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			a.logger.Error("server error", slog.Any("error", err))
+			errCh <- err
 		}
 	}()
 
 	// TODO: не застрянем ли мы здесь навсегда при ошибке в горутна выше
-	<-ctx.Done()
-	a.logger.Info("shutdown signal received")
+	select {
+	case <-ctx.Done():
+		a.logger.Info("shutdown signal received")
+	case err := <-errCh:
+		a.logger.ErrorContext(ctx, "server stopped with error", slog.Any("error", err))
+	}
 
+	// Паттерн "двойной Ctrl+C":
+	// первый сигнал запускает graceful shutdown,
+	// второй мгновенно завершает процесс.
 	stop()
 
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), a.config.Server.ShutdownTimeout)
 	defer shutdownCancel()
 
 	if err := a.httpServer.Shutdown(shutdownCtx); err != nil {
@@ -94,7 +104,7 @@ func (a *App) Run() error {
 
 	a.logger.Info("server stop")
 
-	closerCtx, closerCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	closerCtx, closerCancel := context.WithTimeout(context.Background(), a.config.Timeouts.AppCloseTimeout)
 	defer closerCancel()
 
 	if err := closer.CloseAll(closerCtx); err != nil {

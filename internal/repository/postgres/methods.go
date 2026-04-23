@@ -14,6 +14,8 @@ import (
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 func (s *Storage) Create(ctx context.Context, sub domain.Subscription) (uuid.UUID, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
+	defer cancel()
 	startDate := mapYearMonthToSql(sub.StartDate)
 	endDate := mapPtrYearMonthToSql(sub.EndDate)
 
@@ -36,6 +38,8 @@ func (s *Storage) Create(ctx context.Context, sub domain.Subscription) (uuid.UUI
 }
 
 func (s *Storage) GetByID(ctx context.Context, subID uuid.UUID) (domain.Subscription, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
+	defer cancel()
 	subRow, err := s.getRowByID(ctx, subID)
 	if err != nil {
 		return domain.Subscription{}, err
@@ -73,6 +77,8 @@ func (s *Storage) getRowByID(ctx context.Context, subID uuid.UUID) (subscription
 }
 
 func (s *Storage) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Subscription) error {
+	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
+	defer cancel()
 	updateSQL, updateArgs, err := psql.
 		Update(subscriptionTable).
 		Set(colServiceName, sub.ServiceName).
@@ -97,6 +103,8 @@ func (s *Storage) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Su
 }
 
 func (s *Storage) DeleteByID(ctx context.Context, subID uuid.UUID) error {
+	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
+	defer cancel()
 	deleteSQL, deleteArgs, err := psql.
 		Delete(subscriptionTable).
 		Where(sq.Eq{colID: subID}).
@@ -118,6 +126,8 @@ func (s *Storage) DeleteByID(ctx context.Context, subID uuid.UUID) error {
 }
 
 func (s *Storage) List(ctx context.Context) ([]domain.Subscription, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
+	defer cancel()
 	subRows, err := s.listRows(ctx)
 	if err != nil {
 		return nil, err
@@ -153,6 +163,8 @@ func (s *Storage) listRows(ctx context.Context) ([]subscriptionRow, error) {
 }
 
 func (s *Storage) GetFiltredSubs(ctx context.Context, filter domain.FilterTotal) ([]domain.Subscription, error) {
+	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
+	defer cancel()
 	// TODO: check from > to
 	subRows, err := s.getFiltredSubsRows(ctx, filter)
 	if err != nil {

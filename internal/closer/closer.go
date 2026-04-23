@@ -60,7 +60,6 @@ func (c *closer) closeAll(ctx context.Context) error {
 
 			start := time.Now()
 			slog.Info("closing resource", slog.String("name", f.name))
-
 			resourceCount := i + 1
 			resourceTimeout := getResourceTimeout(ctx, resourceCount)
 			resourceCtx, resourceCancel := context.WithTimeout(ctx, resourceTimeout)
