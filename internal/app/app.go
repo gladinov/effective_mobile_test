@@ -10,13 +10,18 @@ import (
 
 	"github.com/gladinov/effective_mobile_test_assignment/internal/closer"
 	"github.com/gladinov/effective_mobile_test_assignment/internal/config"
+	httperrors "github.com/gladinov/effective_mobile_test_assignment/internal/http/errors"
+	mw "github.com/gladinov/effective_mobile_test_assignment/internal/http/middleware"
 	"github.com/gladinov/effective_mobile_test_assignment/utils/logg"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 type App struct {
 	config      config.ServiceConfig
 	logger      *slog.Logger
 	diContainer *diContainer
+	router      http.Handler
 	httpServer  *http.Server
 }
 
@@ -33,12 +38,25 @@ func (a *App) initDeps() {
 		a.initConfig,
 		a.initLogger,
 		a.initDiContainer,
+		a.initRouter,
 		a.initHTTPServer,
 	}
 
 	for _, fn := range inits {
 		fn()
 	}
+}
+
+func (a *App) initRouter() {
+	router := echo.New()
+
+	router.Use(middleware.CORS())
+	router.Use(mw.LoggerMiddleWare(a.logger))
+	router.HTTPErrorHandler = httperrors.HTTPErrorHandler(a.logger)
+
+	a.diContainer.Handler().RegisterRoutes(router)
+
+	a.router = router
 }
 
 func (a *App) initConfig() {
@@ -56,7 +74,7 @@ func (a *App) initDiContainer() {
 func (a *App) initHTTPServer() {
 	a.httpServer = &http.Server{
 		Addr:              a.config.Server.GetServerAddress(),
-		Handler:           a.diContainer.Handler().Routes(),
+		Handler:           a.router,
 		ReadHeaderTimeout: a.config.Server.ReadHeaderTimeout,
 		WriteTimeout:      a.config.Server.WriteTimeout,
 		ReadTimeout:       a.config.Server.ReadTimeout,
@@ -108,7 +126,7 @@ func (a *App) Run() error {
 	defer closerCancel()
 
 	if err := closer.CloseAll(closerCtx); err != nil {
-		slog.Error("resource close error", slog.Any("error", err))
+		a.logger.Error("resource close error", slog.Any("error", err))
 	}
 
 	return nil

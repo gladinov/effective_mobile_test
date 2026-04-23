@@ -5,58 +5,15 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"time"
 
-	"github.com/gladinov/e"
 	"github.com/gladinov/effective_mobile_test_assignment/internal/domain"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-)
-
-var (
-	errInvalidRequestBody      error = errors.New("invalid request body")
-	errInvalidUserIDQueryParam error = errors.New("invalid userID query param")
-
-	errGetData     error = errors.New("internal error")
-	errInvalidUUID error = errors.New("invalid uuid")
-	errNotFound    error = errors.New("not Found")
 )
 
 type Handler interface {
-	Routes() *echo.Echo
-}
-
-type handler struct {
-	service        Service
-	requestTimeout time.Duration
-	logger         *slog.Logger
-}
-
-func NewHandler(logger *slog.Logger, service Service, requestTimeout time.Duration) *handler {
-	return &handler{
-		logger:         logger,
-		service:        service,
-		requestTimeout: requestTimeout,
-	}
-}
-
-func (h *handler) Routes() *echo.Echo {
-	router := echo.New()
-
-	router.Use(middleware.CORS())
-	router.Use(h.LoggerMiddleWare)
-	router.HTTPErrorHandler = HTTPErrorHandler(h.logger)
-	// TODO: Добавить healthcheck
-	router.POST("/subscriptions/create", h.Create)
-	router.GET("/subscriptions/get/:id", h.Get)
-	router.PUT("/subscriptions/update/:id", h.Update)
-	router.DELETE("/subscriptions/delete/:id", h.Delete)
-	router.GET("/subscriptions/list", h.List)
-	router.GET("/subscriptions/total", h.Total)
-
-	return router
+	RegisterRoutes(router *echo.Echo)
 }
 
 type Service interface {
@@ -66,6 +23,33 @@ type Service interface {
 	DeleteByID(ctx context.Context, subID uuid.UUID) error
 	List(ctx context.Context) ([]domain.Subscription, error)
 	GetTotal(ctx context.Context, filter domain.FilterTotal) (int, error)
+}
+
+type handler struct {
+	service        Service
+	requestTimeout time.Duration
+	logger         *slog.Logger
+}
+
+func NewHandler(logger *slog.Logger,
+	service Service,
+	requestTimeout time.Duration,
+) *handler {
+	return &handler{
+		logger:         logger,
+		service:        service,
+		requestTimeout: requestTimeout,
+	}
+}
+
+func (h *handler) RegisterRoutes(router *echo.Echo) {
+	// TODO: Добавить healthcheck
+	router.POST("/subscriptions/create", h.Create)
+	router.GET("/subscriptions/get/:id", h.Get)
+	router.PUT("/subscriptions/update/:id", h.Update)
+	router.DELETE("/subscriptions/delete/:id", h.Delete)
+	router.GET("/subscriptions/list", h.List)
+	router.GET("/subscriptions/total", h.Total)
 }
 
 func (h *handler) Create(c echo.Context) error {
@@ -84,6 +68,10 @@ func (h *handler) Create(c echo.Context) error {
 
 	subID, err := h.service.Create(ctx, domainSub)
 	if err != nil {
+		h.logger.Error("failed to create subscription",
+			slog.Any("error", err),
+			slog.Any("subscription", domainSub),
+		)
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}
 
@@ -100,7 +88,7 @@ func (h *handler) Get(c echo.Context) error {
 	id := c.Param("id")
 	uuid, err := uuid.Parse(id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, errInvalidUUID)
+		return echo.NewHTTPError(http.StatusBadRequest, ErrInvalidUUID)
 	}
 
 	sub, err := h.service.GetByID(ctx, uuid)
@@ -108,6 +96,11 @@ func (h *handler) Get(c echo.Context) error {
 		if errors.Is(err, domain.ErrSubscriptionNotFound) {
 			return echo.NewHTTPError(http.StatusNotFound, errNotFound)
 		}
+
+		h.logger.Error("failed to get subscription by id",
+			slog.Any("error", err),
+			slog.String("subscription_id", uuid.String()),
+		)
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}
 
@@ -124,7 +117,7 @@ func (h *handler) Update(c echo.Context) error {
 	id := c.Param("id")
 	uuid, err := uuid.Parse(id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, errInvalidUUID)
+		return echo.NewHTTPError(http.StatusBadRequest, ErrInvalidUUID)
 	}
 
 	var subsReq subscriptionRequest
@@ -140,7 +133,12 @@ func (h *handler) Update(c echo.Context) error {
 		if errors.Is(err, domain.ErrSubscriptionNotFound) {
 			return echo.NewHTTPError(http.StatusNotFound, errNotFound)
 		}
-		// TODO: Логирование внутренних ошибок
+
+		h.logger.Error("failed to update subscription",
+			slog.Any("error", err),
+			slog.String("subscription_id", uuid.String()),
+			slog.Any("subscription", domainSub),
+		)
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}
 	return c.NoContent(http.StatusNoContent)
@@ -154,7 +152,7 @@ func (h *handler) Delete(c echo.Context) error {
 	id := c.Param("id")
 	uuid, err := uuid.Parse(id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, errInvalidUUID)
+		return echo.NewHTTPError(http.StatusBadRequest, ErrInvalidUUID)
 	}
 
 	err = h.service.DeleteByID(ctx, uuid)
@@ -162,6 +160,11 @@ func (h *handler) Delete(c echo.Context) error {
 		if errors.Is(err, domain.ErrSubscriptionNotFound) {
 			return echo.NewHTTPError(http.StatusNotFound, errNotFound)
 		}
+
+		h.logger.Error("failed to delete subscription",
+			slog.Any("error", err),
+			slog.String("subscription_id", uuid.String()),
+		)
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}
 
@@ -178,6 +181,10 @@ func (h *handler) List(c echo.Context) error {
 		if errors.Is(err, domain.ErrSubscriptionNotFound) {
 			return echo.NewHTTPError(http.StatusNotFound, errNotFound)
 		}
+
+		h.logger.Error("failed to list subscriptions",
+			slog.Any("error", err),
+		)
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}
 	subs := make([]subscriptionResponce, 0, len(domainSubs))
@@ -193,15 +200,19 @@ func (h *handler) Total(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
 	defer cancel()
 
-	filterTotal, err := h.getQueryForTotal(c)
+	filterDTO, err := getQueryForTotal(c)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, errInvalidUserIDQueryParam)
+		return mapTotalQueryError(err)
 	}
 
-	domainFilter := filterTotal.ToDomain()
+	domainFilter := filterDTO.ToDomain()
 
 	total, err := h.service.GetTotal(ctx, domainFilter)
 	if err != nil {
+		h.logger.Error("failed to get total",
+			slog.Any("error", err),
+			slog.Any("filter", domainFilter),
+		)
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}
 
@@ -209,99 +220,4 @@ func (h *handler) Total(c echo.Context) error {
 		Total: total,
 	}
 	return c.JSON(http.StatusOK, totalResponce)
-}
-
-func (h *handler) getQueryForTotal(c echo.Context) (filterTotal, error) {
-	var filter filterTotal
-
-	userID, err := userIdFromQueryParams(c)
-	if err != nil {
-		// TODO: логируем внутреннюю ошибку на этом уровне и возвращаем из функции ошибку для http ответа
-		return filterTotal{}, errInvalidUserIDQueryParam
-	}
-	filter.UserID = userID
-
-	serviceName := serviceNameFromQueryParams(c)
-	filter.ServiceName = serviceName
-
-	from, err := getYearMonthFromQueryParams(fromYear, fromMonth, c)
-	if err != nil {
-		// TODO: Обработать нормально ошибки
-		return filterTotal{}, err
-	}
-
-	filter.From = from
-
-	to, err := getYearMonthFromQueryParams(toYear, toMonth, c)
-	if err != nil {
-		return filterTotal{}, err
-	}
-
-	filter.To = to
-
-	return filter, nil
-}
-
-func userIdFromQueryParams(c echo.Context) (*uuid.UUID, error) {
-	value, exist := c.QueryParams()[userID]
-	if !exist {
-		return nil, nil
-	}
-
-	if len(value) == 0 || value[0] == "" {
-		return nil, errors.New("user_id param can't be empty")
-	}
-	uuid, err := uuid.Parse(value[0])
-	if err != nil {
-		return nil, e.WrapIfErr("failed to parse uuid from string", err)
-	}
-
-	return &uuid, nil
-}
-
-func serviceNameFromQueryParams(c echo.Context) *string {
-	value, exist := c.QueryParams()[serviceName]
-	if !exist {
-		return nil
-	}
-
-	res := value[0]
-
-	return &res
-}
-
-func getYearMonthFromQueryParams(yearConst, monthConst string, c echo.Context) (*yearMonth, error) {
-	valueYear, existYear := c.QueryParams()[yearConst]
-	valueMonth, existMonth := c.QueryParams()[monthConst]
-
-	switch {
-	case !existYear && !existMonth:
-		return nil, nil
-	case !existYear:
-		return nil, errors.New("year is empty, but month exist")
-	case !existMonth:
-		return nil, errors.New("month is empty, but year exist")
-	}
-	if len(valueYear) == 0 || valueYear[0] == "" {
-		return nil, errors.New("year can't be empty")
-	}
-	if len(valueMonth) == 0 || valueMonth[0] == "" {
-		return nil, errors.New("month can't be empty")
-	}
-
-	year, err := strconv.Atoi(valueYear[0])
-	if err != nil {
-		return nil, errors.New("failed to conv year query param to int")
-	}
-	month, err := strconv.Atoi(valueMonth[0])
-	if err != nil {
-		return nil, errors.New("failed to conv month query param to int")
-	}
-
-	res := yearMonth{
-		Year:  year,
-		Month: time.Month(month),
-	}
-
-	return &res, nil
 }
