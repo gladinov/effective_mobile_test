@@ -92,6 +92,14 @@ type subscriptionRequest struct {
 }
 
 func (s *subscriptionRequest) ToDomain() (domain.Subscription, error) {
+	if strings.TrimSpace(s.ServiceName) == "" {
+		return domain.Subscription{}, errServiceNameRequired
+	}
+
+	if s.Price <= 0 {
+		return domain.Subscription{}, errPriceInvalid
+	}
+
 	trimmedUserID := strings.TrimSpace(s.UserID)
 	if trimmedUserID == "" {
 		return domain.Subscription{}, errUserIDEmpty
@@ -112,6 +120,10 @@ func (s *subscriptionRequest) ToDomain() (domain.Subscription, error) {
 		return domain.Subscription{}, err
 	}
 
+	if endDate != nil && endDate.CountOfMonth() < startDate.CountOfMonth() {
+		return domain.Subscription{}, errEndDateBeforeStart
+	}
+
 	return domain.Subscription{
 		ServiceName: strings.TrimSpace(s.ServiceName),
 		Price:       s.Price,
@@ -128,44 +140,6 @@ type subscriptionResponce struct {
 	UserID      uuid.UUID `json:"user_id"`
 	StartDate   string    `json:"start_date"`
 	EndDate     *string   `json:"end_date"`
-}
-
-func (s *subscriptionRequest) Validate() error {
-	if strings.TrimSpace(s.ServiceName) == "" {
-		return errServiceNameRequired
-	}
-
-	if s.Price <= 0 {
-		return errPriceInvalid
-	}
-
-	if strings.TrimSpace(s.UserID) == "" {
-		return errUserIDEmpty
-	}
-
-	if strings.TrimSpace(s.StartDate) == "" {
-		return errStartDateRequired
-	}
-
-	startDate, err := parseYearMonth(s.StartDate)
-	if err != nil {
-		return err
-	}
-
-	if _, err := uuid.Parse(strings.TrimSpace(s.UserID)); err != nil {
-		return errInvalidUUID
-	}
-
-	endDate, err := mapStringYearMonthToDomainPtr(s.EndDate)
-	if err != nil {
-		return err
-	}
-
-	if endDate != nil && endDate.CountOfMonth() < startDate.CountOfMonth() {
-		return errEndDateBeforeStart
-	}
-
-	return nil
 }
 
 func parseYearMonth(raw string) (domain.YearMonth, error) {

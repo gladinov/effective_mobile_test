@@ -65,10 +65,6 @@ func (h *handler) Create(c echo.Context) error {
 		return mapSubscriptionRequestError(err)
 	}
 
-	if err := subsReq.Validate(); err != nil {
-		return mapSubscriptionRequestError(err)
-	}
-
 	domainSub, err := subsReq.ToDomain()
 	if err != nil {
 		return mapSubscriptionRequestError(err)
@@ -132,9 +128,6 @@ func (h *handler) Update(c echo.Context) error {
 
 	err = c.Bind(&subsReq)
 	if err != nil {
-		return mapSubscriptionRequestError(err)
-	}
-	if err := subsReq.Validate(); err != nil {
 		return mapSubscriptionRequestError(err)
 	}
 	domainSub, err := subsReq.ToDomain()
