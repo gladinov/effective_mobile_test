@@ -215,30 +215,29 @@ func applyFilters(filter domain.FilterTotal, query sq.SelectBuilder) sq.SelectBu
 
 	switch {
 	case filter.From != nil && filter.To != nil:
-		// Фильтруем по полям БД startDate и endDate:
-		// Если оба фильтра from и to не равны nil,
-		// то нам нужно получить все строки, которые удовлетворяют условию:
-		// startDate >= from || endDate <= to
+		from := mapYearMonthToSql(*filter.From)
+		to := mapYearMonthToSql(*filter.To)
+		query = query.Where(
+			sq.LtOrEq{colStartDate: to},
+		).Where(
+			sq.Or{
+				sq.Expr(colEndDate + " IS NULL"),
+				sq.GtOrEq{colEndDate: from},
+			},
+		)
+	case filter.To != nil:
+		to := mapYearMonthToSql(*filter.To)
+		query = query.Where(
+			sq.LtOrEq{colStartDate: to},
+		)
+	case filter.From != nil:
+		from := mapYearMonthToSql(*filter.From)
 		query = query.Where(
 			sq.Or{
-				sq.GtOrEq{colStartDate: *filter.From},
-				sq.LtOrEq{colEndDate: filter.To},
-			})
-	case filter.To != nil:
-		query = query.Where(
-			sq.GtOrEq{colStartDate: *filter.From})
-	case filter.From != nil:
-		query = query.Where(sq.LtOrEq{colEndDate: *filter.To})
-	}
-
-	if filter.From != nil {
-		query = query.
-			Where(sq.Eq{colStartDate: *filter.From})
-	}
-
-	if filter.To != nil {
-		query = query.
-			Where(sq.Eq{colEndDate: *filter.To})
+				sq.Expr(colEndDate + " IS NULL"),
+				sq.GtOrEq{colEndDate: from},
+			},
+		)
 	}
 	return query
 }

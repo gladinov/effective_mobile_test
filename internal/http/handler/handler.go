@@ -61,10 +61,17 @@ func (h *handler) Create(c echo.Context) error {
 
 	err := c.Bind(&subsReq)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, errInvalidRequestBody)
+		return mapSubscriptionRequestError(err)
 	}
 
-	domainSub := subsReq.ToDomain()
+	if err := subsReq.Validate(); err != nil {
+		return mapSubscriptionRequestError(err)
+	}
+
+	domainSub, err := subsReq.ToDomain()
+	if err != nil {
+		return mapSubscriptionRequestError(err)
+	}
 
 	subID, err := h.service.Create(ctx, domainSub)
 	if err != nil {
@@ -124,9 +131,15 @@ func (h *handler) Update(c echo.Context) error {
 
 	err = c.Bind(&subsReq)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, errInvalidRequestBody)
+		return mapSubscriptionRequestError(err)
 	}
-	domainSub := subsReq.ToDomain()
+	if err := subsReq.Validate(); err != nil {
+		return mapSubscriptionRequestError(err)
+	}
+	domainSub, err := subsReq.ToDomain()
+	if err != nil {
+		return mapSubscriptionRequestError(err)
+	}
 
 	err = h.service.UpdateByID(ctx, uuid, domainSub)
 	if err != nil {
@@ -205,7 +218,10 @@ func (h *handler) Total(c echo.Context) error {
 		return mapTotalQueryError(err)
 	}
 
-	domainFilter := filterDTO.ToDomain()
+	domainFilter, err := filterDTO.ToDomain()
+	if err != nil {
+		return mapTotalQueryError(err)
+	}
 
 	total, err := h.service.GetTotal(ctx, domainFilter)
 	if err != nil {
