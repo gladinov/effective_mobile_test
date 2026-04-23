@@ -20,31 +20,31 @@ const (
 
 var (
 	errInvalidRequestBody      error = errors.New("invalid request body")
-	errInvalidUserIDQueryParam error = errors.New("invalid userID query param")
 	errGetData                 error = errors.New("internal error")
-	ErrInvalidUUID             error = errors.New("invalid uuid")
+	errInvalidUUID             error = errors.New("invalid uuid")
 	errNotFound                error = errors.New("not Found")
 )
 
 var (
-	ErrDateEmpty          = errors.New("date must not be empty")
-	ErrDateInvalidFormat  = errors.New("date must be in MM-YYYY format")
-	ErrDateMultipleValues = errors.New("date must be specified once")
-	ErrMonthOutOfRange    = errors.New("month must be between 1 and 12")
+	errDateEmpty          = errors.New("date must not be empty")
+	errDateInvalidFormat  = errors.New("date must be in MM-YYYY format")
+	errDateMultipleValues = errors.New("date must be specified once")
+	errMonthOutOfRange    = errors.New("month must be between 1 and 12")
+	errYearOutOfRange     = errors.New("year must be greater than zero")
 )
 
 var (
-	ErrServiceNameMultipleValues = errors.New("service_name must be specified once")
-	ErrServiceNameEmpty          = errors.New("service name is empty")
+	errServiceNameMultipleValues = errors.New("service_name must be specified once")
+	errServiceNameEmpty          = errors.New("service name is empty")
 )
 
 var (
-	ErrUserIDEmpty          = errors.New("user_id must not be empty")
-	ErrUserIDMultipleValues = errors.New("user_id must be specified once")
-	ErrServiceNameRequired  = errors.New("service_name must not be empty")
-	ErrPriceInvalid         = errors.New("price must be greater than zero")
-	ErrStartDateRequired    = errors.New("start_date is required")
-	ErrEndDateBeforeStart   = errors.New("end_date must not be before start_date")
+	errUserIDEmpty          = errors.New("user_id must not be empty")
+	errUserIDMultipleValues = errors.New("user_id must be specified once")
+	errServiceNameRequired  = errors.New("service_name must not be empty")
+	errPriceInvalid         = errors.New("price must be greater than zero")
+	errStartDateRequired    = errors.New("start_date is required")
+	errEndDateBeforeStart   = errors.New("end_date must not be before start_date")
 )
 
 type filterTotal struct {
@@ -59,7 +59,7 @@ func (f *filterTotal) ToDomain() (domain.FilterTotal, error) {
 	if f.UserID != nil {
 		parsedUserID, err := uuid.Parse(strings.TrimSpace(*f.UserID))
 		if err != nil {
-			return domain.FilterTotal{}, ErrInvalidUUID
+			return domain.FilterTotal{}, errInvalidUUID
 		}
 		userID = &parsedUserID
 	}
@@ -91,9 +91,22 @@ type subscriptionRequest struct {
 }
 
 func (s *subscriptionRequest) ToDomain() (domain.Subscription, error) {
-	userID, err := uuid.Parse(strings.TrimSpace(s.UserID))
+	if strings.TrimSpace(s.ServiceName) == "" {
+		return domain.Subscription{}, errServiceNameRequired
+	}
+
+	if s.Price <= 0 {
+		return domain.Subscription{}, errPriceInvalid
+	}
+
+	trimmedUserID := strings.TrimSpace(s.UserID)
+	if trimmedUserID == "" {
+		return domain.Subscription{}, errUserIDEmpty
+	}
+
+	userID, err := uuid.Parse(trimmedUserID)
 	if err != nil {
-		return domain.Subscription{}, ErrInvalidUUID
+		return domain.Subscription{}, errInvalidUUID
 	}
 
 	startDate, err := parseYearMonth(s.StartDate)
@@ -104,6 +117,10 @@ func (s *subscriptionRequest) ToDomain() (domain.Subscription, error) {
 	endDate, err := mapStringYearMonthToDomainPtr(s.EndDate)
 	if err != nil {
 		return domain.Subscription{}, err
+	}
+
+	if endDate != nil && endDate.CountOfMonth() < startDate.CountOfMonth() {
+		return domain.Subscription{}, errEndDateBeforeStart
 	}
 
 	return domain.Subscription{
@@ -115,7 +132,7 @@ func (s *subscriptionRequest) ToDomain() (domain.Subscription, error) {
 	}, nil
 }
 
-type subscriptionResponce struct {
+type subscriptionResponse struct {
 	ID          uuid.UUID `json:"subscription_id"`
 	ServiceName string    `json:"service_name"`
 	Price       int       `json:"price"`
@@ -124,67 +141,33 @@ type subscriptionResponce struct {
 	EndDate     *string   `json:"end_date"`
 }
 
-func (s *subscriptionRequest) Validate() error {
-	if strings.TrimSpace(s.ServiceName) == "" {
-		return ErrServiceNameRequired
-	}
-
-	if s.Price <= 0 {
-		return ErrPriceInvalid
-	}
-
-	if strings.TrimSpace(s.UserID) == "" {
-		return ErrInvalidUUID
-	}
-
-	if strings.TrimSpace(s.StartDate) == "" {
-		return ErrStartDateRequired
-	}
-
-	startDate, err := parseYearMonth(s.StartDate)
-	if err != nil {
-		return err
-	}
-
-	if _, err := uuid.Parse(strings.TrimSpace(s.UserID)); err != nil {
-		return ErrInvalidUUID
-	}
-
-	endDate, err := mapStringYearMonthToDomainPtr(s.EndDate)
-	if err != nil {
-		return err
-	}
-
-	if endDate != nil && endDate.CountOfMonth() < startDate.CountOfMonth() {
-		return ErrEndDateBeforeStart
-	}
-
-	return nil
-}
-
 func parseYearMonth(raw string) (domain.YearMonth, error) {
 	value := strings.TrimSpace(raw)
 	if value == "" {
-		return domain.YearMonth{}, ErrDateEmpty
+		return domain.YearMonth{}, errDateEmpty
 	}
 
 	parts := strings.Split(value, "-")
 	if len(parts) != 2 {
-		return domain.YearMonth{}, ErrDateInvalidFormat
+		return domain.YearMonth{}, errDateInvalidFormat
 	}
 
 	month, err := strconv.Atoi(parts[0])
 	if err != nil {
-		return domain.YearMonth{}, ErrDateInvalidFormat
+		return domain.YearMonth{}, errDateInvalidFormat
 	}
 
 	year, err := strconv.Atoi(parts[1])
 	if err != nil {
-		return domain.YearMonth{}, ErrDateInvalidFormat
+		return domain.YearMonth{}, errDateInvalidFormat
 	}
 
 	if month < 1 || month > 12 {
-		return domain.YearMonth{}, ErrMonthOutOfRange
+		return domain.YearMonth{}, errMonthOutOfRange
+	}
+
+	if year <= 0 {
+		return domain.YearMonth{}, errYearOutOfRange
 	}
 
 	return domain.YearMonth{
@@ -219,10 +202,10 @@ func mapStringYearMonthToDomainPtr(value *string) (*domain.YearMonth, error) {
 	return &parsed, nil
 }
 
-type CreateResponce struct {
+type CreateResponse struct {
 	SubID uuid.UUID `json:"subscription_id"`
 }
 
-type totalResponce struct {
+type totalResponse struct {
 	Total int `json:"total"`
 }
