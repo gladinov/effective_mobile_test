@@ -61,6 +61,7 @@ func (d *diContainer) Service() handler.Service {
 
 func (d *diContainer) Handler() handler.Handler {
 	if d.handler == nil {
+		d.logger.Info("create new handler")
 		h := handler.NewHandler(d.logger, d.Service(), d.cfg.Timeouts.RequestTimeout)
 		d.handler = h
 	}
