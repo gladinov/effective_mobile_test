@@ -6,15 +6,14 @@ import (
 
 	"github.com/gladinov/effective_mobile_test_assignment/internal/closer"
 	"github.com/gladinov/effective_mobile_test_assignment/internal/config"
-	"github.com/gladinov/effective_mobile_test_assignment/internal/handler"
+	"github.com/gladinov/effective_mobile_test_assignment/internal/http/handler"
 	"github.com/gladinov/effective_mobile_test_assignment/internal/repository/postgres"
 	"github.com/gladinov/effective_mobile_test_assignment/internal/service"
 )
 
 type diContainer struct {
-	logger *slog.Logger
-	cfg    config.ServiceConfig
-
+	logger  *slog.Logger
+	cfg     config.ServiceConfig
 	db      service.Storage
 	service handler.Service
 	handler handler.Handler
@@ -62,6 +61,7 @@ func (d *diContainer) Service() handler.Service {
 
 func (d *diContainer) Handler() handler.Handler {
 	if d.handler == nil {
+		d.logger.Info("create new handler")
 		h := handler.NewHandler(d.logger, d.Service(), d.cfg.Timeouts.RequestTimeout)
 		d.handler = h
 	}

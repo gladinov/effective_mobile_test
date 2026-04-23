@@ -1,4 +1,4 @@
-package handler
+package httperrors
 
 import (
 	"errors"
@@ -7,6 +7,10 @@ import (
 
 	"github.com/labstack/echo/v4"
 )
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
 
 func HTTPErrorHandler(logger *slog.Logger) echo.HTTPErrorHandler {
 	return func(err error, c echo.Context) {
