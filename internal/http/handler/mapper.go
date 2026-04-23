@@ -10,6 +10,8 @@ import (
 
 func mapSubscriptionRequestError(err error) error {
 	switch {
+	case errors.Is(err, ErrUserIDEmpty):
+		return echo.NewHTTPError(http.StatusBadRequest, "user_id must not be empty")
 	case errors.Is(err, ErrInvalidUUID):
 		return echo.NewHTTPError(http.StatusBadRequest, "user_id must be a valid UUID")
 	case errors.Is(err, ErrServiceNameRequired):

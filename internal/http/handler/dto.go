@@ -91,7 +91,12 @@ type subscriptionRequest struct {
 }
 
 func (s *subscriptionRequest) ToDomain() (domain.Subscription, error) {
-	userID, err := uuid.Parse(strings.TrimSpace(s.UserID))
+	trimmedUserID := strings.TrimSpace(s.UserID)
+	if trimmedUserID == "" {
+		return domain.Subscription{}, ErrUserIDEmpty
+	}
+
+	userID, err := uuid.Parse(trimmedUserID)
 	if err != nil {
 		return domain.Subscription{}, ErrInvalidUUID
 	}
@@ -134,7 +139,7 @@ func (s *subscriptionRequest) Validate() error {
 	}
 
 	if strings.TrimSpace(s.UserID) == "" {
-		return ErrInvalidUUID
+		return ErrUserIDEmpty
 	}
 
 	if strings.TrimSpace(s.StartDate) == "" {
