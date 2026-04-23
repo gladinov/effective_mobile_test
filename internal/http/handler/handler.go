@@ -79,7 +79,7 @@ func (h *handler) Create(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}
 
-	resp := CreateResponce{SubID: subID}
+	resp := CreateResponse{SubID: subID}
 
 	return c.JSON(http.StatusCreated, resp)
 }
@@ -90,12 +90,12 @@ func (h *handler) Get(c echo.Context) error {
 	defer cancel()
 
 	id := c.Param("id")
-	uuid, err := uuid.Parse(id)
+	subID, err := uuid.Parse(id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, errInvalidUUID)
 	}
 
-	sub, err := h.service.GetByID(ctx, uuid)
+	sub, err := h.service.GetByID(ctx, subID)
 	if err != nil {
 		if errors.Is(err, domain.ErrSubscriptionNotFound) {
 			return echo.NewHTTPError(http.StatusNotFound, errNotFound)
@@ -103,12 +103,12 @@ func (h *handler) Get(c echo.Context) error {
 
 		h.logger.Error("failed to get subscription by id",
 			slog.Any("error", err),
-			slog.String("subscription_id", uuid.String()),
+			slog.String("subscription_id", subID.String()),
 		)
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}
 
-	resp := mapDomainSubToDTOSubResponce(sub)
+	resp := mapDomainSubToDTOSubResponse(sub)
 
 	return c.JSON(http.StatusOK, resp)
 }
@@ -119,7 +119,7 @@ func (h *handler) Update(c echo.Context) error {
 	defer cancel()
 
 	id := c.Param("id")
-	uuid, err := uuid.Parse(id)
+	subID, err := uuid.Parse(id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, errInvalidUUID)
 	}
@@ -135,7 +135,7 @@ func (h *handler) Update(c echo.Context) error {
 		return mapSubscriptionRequestError(err)
 	}
 
-	err = h.service.UpdateByID(ctx, uuid, domainSub)
+	err = h.service.UpdateByID(ctx, subID, domainSub)
 	if err != nil {
 		if errors.Is(err, domain.ErrSubscriptionNotFound) {
 			return echo.NewHTTPError(http.StatusNotFound, errNotFound)
@@ -143,7 +143,7 @@ func (h *handler) Update(c echo.Context) error {
 
 		h.logger.Error("failed to update subscription",
 			slog.Any("error", err),
-			slog.String("subscription_id", uuid.String()),
+			slog.String("subscription_id", subID.String()),
 			slog.Any("subscription", domainSub),
 		)
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
@@ -157,12 +157,12 @@ func (h *handler) Delete(c echo.Context) error {
 	defer cancel()
 
 	id := c.Param("id")
-	uuid, err := uuid.Parse(id)
+	subID, err := uuid.Parse(id)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, errInvalidUUID)
 	}
 
-	err = h.service.DeleteByID(ctx, uuid)
+	err = h.service.DeleteByID(ctx, subID)
 	if err != nil {
 		if errors.Is(err, domain.ErrSubscriptionNotFound) {
 			return echo.NewHTTPError(http.StatusNotFound, errNotFound)
@@ -170,7 +170,7 @@ func (h *handler) Delete(c echo.Context) error {
 
 		h.logger.Error("failed to delete subscription",
 			slog.Any("error", err),
-			slog.String("subscription_id", uuid.String()),
+			slog.String("subscription_id", subID.String()),
 		)
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}
@@ -190,9 +190,9 @@ func (h *handler) List(c echo.Context) error {
 		)
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}
-	subs := make([]subscriptionResponce, 0, len(domainSubs))
+	subs := make([]subscriptionResponse, 0, len(domainSubs))
 	for i := range domainSubs {
-		subs = append(subs, mapDomainSubToDTOSubResponce(domainSubs[i]))
+		subs = append(subs, mapDomainSubToDTOSubResponse(domainSubs[i]))
 	}
 
 	return c.JSON(http.StatusOK, subs)
@@ -217,8 +217,8 @@ func (h *handler) Total(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}
 
-	totalResponce := totalResponce{
+	totalResponse := totalResponse{
 		Total: total,
 	}
-	return c.JSON(http.StatusOK, totalResponce)
+	return c.JSON(http.StatusOK, totalResponse)
 }

@@ -20,7 +20,6 @@ const (
 
 var (
 	errInvalidRequestBody      error = errors.New("invalid request body")
-	errInvalidUserIDQueryParam error = errors.New("invalid userID query param")
 	errGetData                 error = errors.New("internal error")
 	errInvalidUUID             error = errors.New("invalid uuid")
 	errNotFound                error = errors.New("not Found")
@@ -133,7 +132,7 @@ func (s *subscriptionRequest) ToDomain() (domain.Subscription, error) {
 	}, nil
 }
 
-type subscriptionResponce struct {
+type subscriptionResponse struct {
 	ID          uuid.UUID `json:"subscription_id"`
 	ServiceName string    `json:"service_name"`
 	Price       int       `json:"price"`
@@ -203,10 +202,10 @@ func mapStringYearMonthToDomainPtr(value *string) (*domain.YearMonth, error) {
 	return &parsed, nil
 }
 
-type CreateResponce struct {
+type CreateResponse struct {
 	SubID uuid.UUID `json:"subscription_id"`
 }
 
-type totalResponce struct {
+type totalResponse struct {
 	Total int `json:"total"`
 }
