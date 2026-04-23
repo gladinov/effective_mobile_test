@@ -1,13 +1,10 @@
 package postgres
 
 import (
-	"errors"
 	"time"
 
 	"github.com/google/uuid"
 )
-
-var ErrSubscriptionNotFound error = errors.New("not found subscription by this ID")
 
 const (
 	subscriptionTable = "subscriptions"

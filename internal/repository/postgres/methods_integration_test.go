@@ -127,7 +127,7 @@ func TestStorageGetByIDIntegration_NotFound(t *testing.T) {
 	missingID := uuid.MustParse("97cbd2bb-f735-4668-a49d-482da1a165ae")
 
 	_, err := storage.GetByID(ctx, missingID)
-	require.ErrorIs(t, err, ErrSubscriptionNotFound)
+	require.ErrorIs(t, err, domain.ErrSubscriptionNotFound)
 }
 
 func TestStorageUpdateByIDIntegration(t *testing.T) {
@@ -187,7 +187,7 @@ func TestStorageUpdateByIDIntegration_NotFound(t *testing.T) {
 		UserID:      uuid.MustParse("60601fee-2bf1-4721-ae6f-7636e79a0cba"),
 		StartDate:   domain.YearMonth{Year: 2025, Month: time.May},
 	})
-	require.ErrorIs(t, err, ErrSubscriptionNotFound)
+	require.ErrorIs(t, err, domain.ErrSubscriptionNotFound)
 }
 
 func TestStorageDeleteByIDIntegration(t *testing.T) {
@@ -213,7 +213,7 @@ func TestStorageDeleteByIDIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = storage.GetByID(ctx, subID)
-	require.ErrorIs(t, err, ErrSubscriptionNotFound)
+	require.ErrorIs(t, err, domain.ErrSubscriptionNotFound)
 }
 
 func TestStorageDeleteByIDIntegration_NotFound(t *testing.T) {
@@ -226,7 +226,7 @@ func TestStorageDeleteByIDIntegration_NotFound(t *testing.T) {
 	storage := NewStorage(pool, 5*time.Second)
 
 	err := storage.DeleteByID(ctx, uuid.MustParse("e5b22ff1-6c0f-4138-b3a2-f86adbb0f764"))
-	require.ErrorIs(t, err, ErrSubscriptionNotFound)
+	require.ErrorIs(t, err, domain.ErrSubscriptionNotFound)
 }
 
 func TestStorageListIntegration(t *testing.T) {
@@ -263,7 +263,7 @@ func TestStorageListIntegration(t *testing.T) {
 	require.ElementsMatch(t, []domain.Subscription{first, second}, got)
 }
 
-func TestStorageGetFiltredSubsIntegration(t *testing.T) {
+func TestStorageGetFilteredSubsIntegration(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -314,7 +314,7 @@ func TestStorageGetFiltredSubsIntegration(t *testing.T) {
 	from := domain.YearMonth{Year: 2025, Month: time.August}
 	to := domain.YearMonth{Year: 2025, Month: time.September}
 
-	got, err := storage.GetFiltredSubs(ctx, domain.FilterTotal{
+	got, err := storage.GetFilteredSubs(ctx, domain.FilterTotal{
 		UserID:      &targetUserID,
 		ServiceName: stringPtr("Yandex Plus"),
 		From:        &from,
