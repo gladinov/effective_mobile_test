@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"log/slog"
 	"runtime"
 	"time"
 
@@ -41,7 +40,6 @@ func NewPool(ctx context.Context, cfg config.ServiceConfig) (*pgxpool.Pool, erro
 		return nil, e.WrapIfErr("failed to ping database", err)
 	}
 
-	slog.Info("Pool created")
 	return pool, nil
 }
 
@@ -59,6 +57,7 @@ func newPoolConfig(dsn string) (*pgxpool.Config, error) {
 	return poolCfg, nil
 }
 
-func (s *Storage) Close() {
+func (s *Storage) Close() error {
 	s.db.Close()
+	return nil
 }

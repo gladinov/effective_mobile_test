@@ -12,6 +12,7 @@ import (
 	"github.com/gladinov/effective_mobile_test_assignment/internal/domain"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 var (
@@ -23,16 +24,37 @@ var (
 	errNotFound    error = errors.New("not Found")
 )
 
-type Handler struct {
+type Handler interface {
+	Routes() *echo.Echo
+}
+
+type handler struct {
 	logger  *slog.Logger
 	service Service
 }
 
-func NewHandler(logger *slog.Logger, service Service) *Handler {
-	return &Handler{
+func NewHandler(logger *slog.Logger, service Service) *handler {
+	return &handler{
 		logger:  logger,
 		service: service,
 	}
+}
+
+func (h *handler) Routes() *echo.Echo {
+	router := echo.New()
+
+	router.Use(middleware.CORS())
+	router.Use(h.LoggerMiddleWare)
+	router.HTTPErrorHandler = HTTPErrorHandler(h.logger)
+	// TODO: Добавить healthcheck
+	router.POST("/subscriptions/create", h.Create)
+	router.GET("/subscriptions/get/:id", h.Get)
+	router.PUT("/subscriptions/update/:id", h.Update)
+	router.DELETE("/subscriptions/delete/:id", h.Delete)
+	router.GET("/subscriptions/list", h.List)
+	router.GET("/subscriptions/total", h.Total)
+
+	return router
 }
 
 type Service interface {
@@ -44,7 +66,7 @@ type Service interface {
 	GetTotal(ctx context.Context, filter domain.FilterTotal) (int, error)
 }
 
-func (h *Handler) Create(c echo.Context) error {
+func (h *handler) Create(c echo.Context) error {
 	ctx := c.Request().Context()
 	// TODO: Подобрать таймауты
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
@@ -69,7 +91,7 @@ func (h *Handler) Create(c echo.Context) error {
 	return c.JSON(http.StatusCreated, resp)
 }
 
-func (h *Handler) Get(c echo.Context) error {
+func (h *handler) Get(c echo.Context) error {
 	ctx := c.Request().Context()
 	// TODO: Подобрать таймауты
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
@@ -94,7 +116,7 @@ func (h *Handler) Get(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
-func (h *Handler) Update(c echo.Context) error {
+func (h *handler) Update(c echo.Context) error {
 	ctx := c.Request().Context()
 	// TODO: Подобрать таймауты
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
@@ -125,7 +147,7 @@ func (h *Handler) Update(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
-func (h *Handler) Delete(c echo.Context) error {
+func (h *handler) Delete(c echo.Context) error {
 	ctx := c.Request().Context()
 	// TODO: Подобрать таймауты
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
@@ -148,7 +170,7 @@ func (h *Handler) Delete(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
-func (h *Handler) List(c echo.Context) error {
+func (h *handler) List(c echo.Context) error {
 	ctx := c.Request().Context()
 	// TODO: Подобрать таймауты
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
@@ -169,7 +191,7 @@ func (h *Handler) List(c echo.Context) error {
 	return c.JSON(http.StatusOK, subs)
 }
 
-func (h *Handler) Total(c echo.Context) error {
+func (h *handler) Total(c echo.Context) error {
 	ctx := c.Request().Context()
 	// TODO: Подобрать таймауты
 	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
@@ -193,7 +215,7 @@ func (h *Handler) Total(c echo.Context) error {
 	return c.JSON(http.StatusOK, totalResponce)
 }
 
-func (h *Handler) getQueryForTotal(c echo.Context) (filterTotal, error) {
+func (h *handler) getQueryForTotal(c echo.Context) (filterTotal, error) {
 	var filter filterTotal
 
 	userID, err := userIdFromQueryParams(c)
