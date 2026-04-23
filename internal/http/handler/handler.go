@@ -192,10 +192,6 @@ func (h *handler) List(c echo.Context) error {
 
 	domainSubs, err := h.service.List(ctx)
 	if err != nil {
-		if errors.Is(err, domain.ErrSubscriptionNotFound) {
-			return echo.NewHTTPError(http.StatusNotFound, errNotFound)
-		}
-
 		h.logger.Error("failed to list subscriptions",
 			slog.Any("error", err),
 		)
