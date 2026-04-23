@@ -10,23 +10,25 @@ import (
 
 func mapSubscriptionRequestError(err error) error {
 	switch {
-	case errors.Is(err, ErrUserIDEmpty):
+	case errors.Is(err, errUserIDEmpty):
 		return echo.NewHTTPError(http.StatusBadRequest, "user_id must not be empty")
-	case errors.Is(err, ErrInvalidUUID):
+	case errors.Is(err, errInvalidUUID):
 		return echo.NewHTTPError(http.StatusBadRequest, "user_id must be a valid UUID")
-	case errors.Is(err, ErrServiceNameRequired):
+	case errors.Is(err, errServiceNameRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, "service_name must not be empty")
-	case errors.Is(err, ErrPriceInvalid):
+	case errors.Is(err, errPriceInvalid):
 		return echo.NewHTTPError(http.StatusBadRequest, "price must be greater than zero")
-	case errors.Is(err, ErrStartDateRequired):
+	case errors.Is(err, errStartDateRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, "start_date is required")
-	case errors.Is(err, ErrDateEmpty):
+	case errors.Is(err, errDateEmpty):
 		return echo.NewHTTPError(http.StatusBadRequest, "date must not be empty")
-	case errors.Is(err, ErrDateInvalidFormat):
+	case errors.Is(err, errDateInvalidFormat):
 		return echo.NewHTTPError(http.StatusBadRequest, "date must be in MM-YYYY format")
-	case errors.Is(err, ErrMonthOutOfRange):
+	case errors.Is(err, errMonthOutOfRange):
 		return echo.NewHTTPError(http.StatusBadRequest, "month must be between 1 and 12")
-	case errors.Is(err, ErrEndDateBeforeStart):
+	case errors.Is(err, errYearOutOfRange):
+		return echo.NewHTTPError(http.StatusBadRequest, "year must be greater than zero")
+	case errors.Is(err, errEndDateBeforeStart):
 		return echo.NewHTTPError(http.StatusBadRequest, "end_date must not be before start_date")
 	default:
 		return echo.NewHTTPError(http.StatusBadRequest, errInvalidRequestBody)
@@ -46,34 +48,37 @@ func mapDomainSubToDTOSubResponce(domainSub domain.Subscription) subscriptionRes
 
 func mapTotalQueryError(err error) error {
 	switch {
-	case errors.Is(err, ErrInvalidUUID):
+	case errors.Is(err, errInvalidUUID):
 		return echo.NewHTTPError(http.StatusBadRequest, "user_id must be a valid UUID")
 
-	case errors.Is(err, ErrUserIDEmpty):
+	case errors.Is(err, errUserIDEmpty):
 		return echo.NewHTTPError(http.StatusBadRequest, "user_id must not be empty")
 
-	case errors.Is(err, ErrUserIDMultipleValues):
+	case errors.Is(err, errUserIDMultipleValues):
 		return echo.NewHTTPError(http.StatusBadRequest, "user_id must be specified once")
 
-	case errors.Is(err, ErrServiceNameEmpty):
+	case errors.Is(err, errServiceNameEmpty):
 		return echo.NewHTTPError(http.StatusBadRequest, "service_name must not be empty")
 
-	case errors.Is(err, ErrServiceNameMultipleValues):
+	case errors.Is(err, errServiceNameMultipleValues):
 		return echo.NewHTTPError(http.StatusBadRequest, "service_name must be specified once")
 
-	case errors.Is(err, ErrDateEmpty):
+	case errors.Is(err, errDateEmpty):
 		return echo.NewHTTPError(http.StatusBadRequest, "date must not be empty")
 
-	case errors.Is(err, ErrDateInvalidFormat):
+	case errors.Is(err, errDateInvalidFormat):
 		return echo.NewHTTPError(http.StatusBadRequest, "date must be in MM-YYYY format")
 
-	case errors.Is(err, ErrDateMultipleValues):
+	case errors.Is(err, errDateMultipleValues):
 		return echo.NewHTTPError(http.StatusBadRequest, "date query param must be specified once")
 
-	case errors.Is(err, ErrMonthOutOfRange):
+	case errors.Is(err, errMonthOutOfRange):
 		return echo.NewHTTPError(http.StatusBadRequest, "month must be between 1 and 12")
 
-	case errors.Is(err, ErrEndDateBeforeStart):
+	case errors.Is(err, errYearOutOfRange):
+		return echo.NewHTTPError(http.StatusBadRequest, "year must be greater than zero")
+
+	case errors.Is(err, errEndDateBeforeStart):
 		return echo.NewHTTPError(http.StatusBadRequest, "to must not be before from")
 
 	default:

@@ -10,25 +10,25 @@ import (
 func getQueryForTotal(c echo.Context) (filterTotal, error) {
 	var filter filterTotal
 
-	userID, err := stringFromQueryParam(userID, c, ErrUserIDEmpty, ErrUserIDMultipleValues)
+	userID, err := stringFromQueryParam(userID, c, errUserIDEmpty, errUserIDMultipleValues)
 	if err != nil {
 		return filterTotal{}, e.WrapIfErr("parse user_id query param", err)
 	}
 	filter.UserID = userID
 
-	serviceName, err := stringFromQueryParam(serviceName, c, ErrServiceNameEmpty, ErrServiceNameMultipleValues)
+	serviceName, err := stringFromQueryParam(serviceName, c, errServiceNameEmpty, errServiceNameMultipleValues)
 	if err != nil {
 		return filterTotal{}, e.WrapIfErr("parse service_name query param", err)
 	}
 	filter.ServiceName = serviceName
 
-	fromPeriod, err := stringFromQueryParam(fromDate, c, ErrDateEmpty, ErrDateMultipleValues)
+	fromPeriod, err := stringFromQueryParam(fromDate, c, errDateEmpty, errDateMultipleValues)
 	if err != nil {
 		return filterTotal{}, e.WrapIfErr("parse from query param", err)
 	}
 	filter.From = fromPeriod
 
-	toPeriod, err := stringFromQueryParam(toDate, c, ErrDateEmpty, ErrDateMultipleValues)
+	toPeriod, err := stringFromQueryParam(toDate, c, errDateEmpty, errDateMultipleValues)
 	if err != nil {
 		return filterTotal{}, e.WrapIfErr("parse to query param", err)
 	}
@@ -41,7 +41,7 @@ func getQueryForTotal(c echo.Context) (filterTotal, error) {
 
 	if domainFilter.From != nil && domainFilter.To != nil &&
 		domainFilter.To.CountOfMonth() < domainFilter.From.CountOfMonth() {
-		return filterTotal{}, ErrEndDateBeforeStart
+		return filterTotal{}, errEndDateBeforeStart
 	}
 
 	return filter, nil

@@ -96,7 +96,7 @@ func (h *handler) Get(c echo.Context) error {
 	id := c.Param("id")
 	uuid, err := uuid.Parse(id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, ErrInvalidUUID)
+		return echo.NewHTTPError(http.StatusBadRequest, errInvalidUUID)
 	}
 
 	sub, err := h.service.GetByID(ctx, uuid)
@@ -125,7 +125,7 @@ func (h *handler) Update(c echo.Context) error {
 	id := c.Param("id")
 	uuid, err := uuid.Parse(id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, ErrInvalidUUID)
+		return echo.NewHTTPError(http.StatusBadRequest, errInvalidUUID)
 	}
 
 	var subsReq subscriptionRequest
@@ -166,7 +166,7 @@ func (h *handler) Delete(c echo.Context) error {
 	id := c.Param("id")
 	uuid, err := uuid.Parse(id)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, ErrInvalidUUID)
+		return echo.NewHTTPError(http.StatusBadRequest, errInvalidUUID)
 	}
 
 	err = h.service.DeleteByID(ctx, uuid)
