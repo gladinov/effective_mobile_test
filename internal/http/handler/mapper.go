@@ -35,8 +35,8 @@ func mapSubscriptionRequestError(err error) error {
 	}
 }
 
-func mapDomainSubToDTOSubResponse(domainSub domain.Subscription) subscriptionResponse {
-	return subscriptionResponse{
+func mapDomainSubToDTOSubResponse(domainSub domain.Subscription) SubscriptionResponse {
+	return SubscriptionResponse{
 		ID:          domainSub.ID,
 		ServiceName: domainSub.ServiceName,
 		Price:       domainSub.Price,

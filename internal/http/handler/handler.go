@@ -53,12 +53,23 @@ func (h *handler) RegisterRoutes(router *echo.Echo) {
 	router.GET("/subscriptions/total", h.Total)
 }
 
+// Create creates a new subscription.
+// @Summary Create subscription
+// @Description Creates a new user subscription record
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param subscription body SubscriptionRequest true "Subscription payload"
+// @Success 201 {object} CreateResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /subscriptions [post]
 func (h *handler) Create(c echo.Context) error {
 	ctx := c.Request().Context()
 	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
 	defer cancel()
 
-	var subsReq subscriptionRequest
+	var subsReq SubscriptionRequest
 
 	err := c.Bind(&subsReq)
 	if err != nil {
@@ -84,6 +95,17 @@ func (h *handler) Create(c echo.Context) error {
 	return c.JSON(http.StatusCreated, resp)
 }
 
+// Get returns a subscription by ID.
+// @Summary Get subscription
+// @Description Returns a subscription by its ID
+// @Tags subscriptions
+// @Produce json
+// @Param id path string true "Subscription ID"
+// @Success 200 {object} SubscriptionResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /subscriptions/{id} [get]
 func (h *handler) Get(c echo.Context) error {
 	ctx := c.Request().Context()
 	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
@@ -113,6 +135,19 @@ func (h *handler) Get(c echo.Context) error {
 	return c.JSON(http.StatusOK, resp)
 }
 
+// Update updates a subscription by ID.
+// @Summary Update subscription
+// @Description Updates an existing subscription by its ID
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param id path string true "Subscription ID"
+// @Param subscription body SubscriptionRequest true "Subscription payload"
+// @Success 204
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /subscriptions/{id} [put]
 func (h *handler) Update(c echo.Context) error {
 	ctx := c.Request().Context()
 	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
@@ -124,7 +159,7 @@ func (h *handler) Update(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, errInvalidUUID)
 	}
 
-	var subsReq subscriptionRequest
+	var subsReq SubscriptionRequest
 
 	err = c.Bind(&subsReq)
 	if err != nil {
@@ -151,6 +186,17 @@ func (h *handler) Update(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
+// Delete removes a subscription by ID.
+// @Summary Delete subscription
+// @Description Deletes a subscription by its ID
+// @Tags subscriptions
+// @Produce json
+// @Param id path string true "Subscription ID"
+// @Success 204
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /subscriptions/{id} [delete]
 func (h *handler) Delete(c echo.Context) error {
 	ctx := c.Request().Context()
 	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
@@ -178,6 +224,14 @@ func (h *handler) Delete(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
+// List returns all subscriptions.
+// @Summary List subscriptions
+// @Description Returns all subscriptions
+// @Tags subscriptions
+// @Produce json
+// @Success 200 {array} SubscriptionResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /subscriptions [get]
 func (h *handler) List(c echo.Context) error {
 	ctx := c.Request().Context()
 	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
@@ -190,7 +244,7 @@ func (h *handler) List(c echo.Context) error {
 		)
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}
-	subs := make([]subscriptionResponse, 0, len(domainSubs))
+	subs := make([]SubscriptionResponse, 0, len(domainSubs))
 	for i := range domainSubs {
 		subs = append(subs, mapDomainSubToDTOSubResponse(domainSubs[i]))
 	}
@@ -198,6 +252,19 @@ func (h *handler) List(c echo.Context) error {
 	return c.JSON(http.StatusOK, subs)
 }
 
+// Total calculates the total subscription cost for a selected period.
+// @Summary Get total subscriptions cost
+// @Description Calculates the total cost of subscriptions for the selected period with optional filters
+// @Tags subscriptions
+// @Produce json
+// @Param user_id query string false "Filter by user ID"
+// @Param service_name query string false "Filter by service name"
+// @Param from query string false "Start period in MM-YYYY format"
+// @Param to query string false "End period in MM-YYYY format"
+// @Success 200 {object} TotalResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /subscriptions/total [get]
 func (h *handler) Total(c echo.Context) error {
 	ctx := c.Request().Context()
 	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
@@ -217,7 +284,7 @@ func (h *handler) Total(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}
 
-	totalResponse := totalResponse{
+	totalResponse := TotalResponse{
 		Total: total,
 	}
 	return c.JSON(http.StatusOK, totalResponse)

@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	_ "github.com/gladinov/effective_mobile_test_assignment/docs"
 	"github.com/gladinov/effective_mobile_test_assignment/internal/closer"
 	"github.com/gladinov/effective_mobile_test_assignment/internal/config"
 	httperrors "github.com/gladinov/effective_mobile_test_assignment/internal/http/errors"
@@ -15,6 +16,7 @@ import (
 	"github.com/gladinov/effective_mobile_test_assignment/utils/logg"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	echoSwagger "github.com/swaggo/echo-swagger"
 )
 
 type App struct {
@@ -53,7 +55,8 @@ func (a *App) initRouter() {
 	router.Use(middleware.CORS())
 	router.Use(mw.LoggerMiddleWare(a.logger))
 	router.HTTPErrorHandler = httperrors.HTTPErrorHandler(a.logger)
-
+	// TODO: почему не в RegisterRoutes?
+	router.GET("/swagger/*", echoSwagger.WrapHandler)
 	a.diContainer.Handler().RegisterRoutes(router)
 
 	a.router = router

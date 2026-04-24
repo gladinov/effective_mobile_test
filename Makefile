@@ -9,7 +9,7 @@ ENV_FILE = ./deployments/envs/dev.env #TODO: Поменять на prod.env
 # Phony targets
 # =========================
 
-.PHONY: up build-up down 
+.PHONY: up build-up down
         
 # =========================
 # Docker: production
@@ -24,4 +24,3 @@ build-up:
 
 down:
 	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) down -v
-
