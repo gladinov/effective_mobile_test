@@ -55,11 +55,11 @@ func (h *handler) RegisterRoutes(router *echo.Echo) {
 
 // Create creates a new subscription.
 // @Summary Create subscription
-// @Description Creates a new user subscription record
+// @Description Creates a new user subscription record. user_id must be UUID, price must be zero or greater, start_date and end_date use MM-YYYY format.
 // @Tags subscriptions
 // @Accept json
 // @Produce json
-// @Param subscription body SubscriptionRequest true "Subscription payload"
+// @Param subscription body SubscriptionRequest true "Subscription payload. start_date and end_date use MM-YYYY format, user_id must be UUID."
 // @Success 201 {object} CreateResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
@@ -100,7 +100,7 @@ func (h *handler) Create(c echo.Context) error {
 // @Description Returns a subscription by its ID
 // @Tags subscriptions
 // @Produce json
-// @Param id path string true "Subscription ID"
+// @Param id path string true "Subscription ID (UUID)"
 // @Success 200 {object} SubscriptionResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
@@ -137,12 +137,12 @@ func (h *handler) Get(c echo.Context) error {
 
 // Update updates a subscription by ID.
 // @Summary Update subscription
-// @Description Updates an existing subscription by its ID
+// @Description Updates an existing subscription by its ID. user_id must be UUID, price must be zero or greater, start_date and end_date use MM-YYYY format.
 // @Tags subscriptions
 // @Accept json
 // @Produce json
-// @Param id path string true "Subscription ID"
-// @Param subscription body SubscriptionRequest true "Subscription payload"
+// @Param id path string true "Subscription ID (UUID)"
+// @Param subscription body SubscriptionRequest true "Subscription payload. start_date and end_date use MM-YYYY format, user_id must be UUID."
 // @Success 204
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
@@ -191,7 +191,7 @@ func (h *handler) Update(c echo.Context) error {
 // @Description Deletes a subscription by its ID
 // @Tags subscriptions
 // @Produce json
-// @Param id path string true "Subscription ID"
+// @Param id path string true "Subscription ID (UUID)"
 // @Success 204
 // @Failure 400 {object} ErrorResponse
 // @Failure 404 {object} ErrorResponse
@@ -257,7 +257,7 @@ func (h *handler) List(c echo.Context) error {
 // @Description Calculates the total cost of subscriptions for the selected period with optional filters
 // @Tags subscriptions
 // @Produce json
-// @Param user_id query string false "Filter by user ID"
+// @Param user_id query string false "Filter by user ID (UUID)"
 // @Param service_name query string false "Filter by service name"
 // @Param from query string false "Start period in MM-YYYY format"
 // @Param to query string false "End period in MM-YYYY format"

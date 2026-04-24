@@ -16,7 +16,8 @@ definitions:
         example: 09-2025
         type: string
       price:
-        example: 400
+        example: 0
+        minimum: 0
         type: integer
       service_name:
         example: Yandex Plus
@@ -26,6 +27,7 @@ definitions:
         type: string
       user_id:
         example: 60601fee-2bf1-4721-ae6f-7636e79a0cba
+        format: uuid
         type: string
     type: object
   handler.SubscriptionResponse:
@@ -76,9 +78,11 @@ paths:
     post:
       consumes:
       - application/json
-      description: Creates a new user subscription record
+      description: Creates a new user subscription record. user_id must be UUID, price
+        must be zero or greater, start_date and end_date use MM-YYYY format.
       parameters:
-      - description: Subscription payload
+      - description: Subscription payload. start_date and end_date use MM-YYYY format,
+          user_id must be UUID.
         in: body
         name: subscription
         required: true
@@ -106,7 +110,7 @@ paths:
     delete:
       description: Deletes a subscription by its ID
       parameters:
-      - description: Subscription ID
+      - description: Subscription ID (UUID)
         in: path
         name: id
         required: true
@@ -134,7 +138,7 @@ paths:
     get:
       description: Returns a subscription by its ID
       parameters:
-      - description: Subscription ID
+      - description: Subscription ID (UUID)
         in: path
         name: id
         required: true
@@ -164,14 +168,16 @@ paths:
     put:
       consumes:
       - application/json
-      description: Updates an existing subscription by its ID
+      description: Updates an existing subscription by its ID. user_id must be UUID,
+        price must be zero or greater, start_date and end_date use MM-YYYY format.
       parameters:
-      - description: Subscription ID
+      - description: Subscription ID (UUID)
         in: path
         name: id
         required: true
         type: string
-      - description: Subscription payload
+      - description: Subscription payload. start_date and end_date use MM-YYYY format,
+          user_id must be UUID.
         in: body
         name: subscription
         required: true
@@ -202,7 +208,7 @@ paths:
       description: Calculates the total cost of subscriptions for the selected period
         with optional filters
       parameters:
-      - description: Filter by user ID
+      - description: Filter by user ID (UUID)
         in: query
         name: user_id
         type: string

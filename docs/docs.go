@@ -44,7 +44,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Creates a new user subscription record",
+                "description": "Creates a new user subscription record. user_id must be UUID, price must be zero or greater, start_date and end_date use MM-YYYY format.",
                 "consumes": [
                     "application/json"
                 ],
@@ -57,7 +57,7 @@ const docTemplate = `{
                 "summary": "Create subscription",
                 "parameters": [
                     {
-                        "description": "Subscription payload",
+                        "description": "Subscription payload. start_date and end_date use MM-YYYY format, user_id must be UUID.",
                         "name": "subscription",
                         "in": "body",
                         "required": true,
@@ -101,7 +101,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Filter by user ID",
+                        "description": "Filter by user ID (UUID)",
                         "name": "user_id",
                         "in": "query"
                     },
@@ -159,7 +159,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Subscription ID",
+                        "description": "Subscription ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -193,7 +193,7 @@ const docTemplate = `{
                 }
             },
             "put": {
-                "description": "Updates an existing subscription by its ID",
+                "description": "Updates an existing subscription by its ID. user_id must be UUID, price must be zero or greater, start_date and end_date use MM-YYYY format.",
                 "consumes": [
                     "application/json"
                 ],
@@ -207,13 +207,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Subscription ID",
+                        "description": "Subscription ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
                     },
                     {
-                        "description": "Subscription payload",
+                        "description": "Subscription payload. start_date and end_date use MM-YYYY format, user_id must be UUID.",
                         "name": "subscription",
                         "in": "body",
                         "required": true,
@@ -258,7 +258,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Subscription ID",
+                        "description": "Subscription ID (UUID)",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -316,7 +316,8 @@ const docTemplate = `{
                 },
                 "price": {
                     "type": "integer",
-                    "example": 400
+                    "minimum": 0,
+                    "example": 0
                 },
                 "service_name": {
                     "type": "string",
@@ -328,6 +329,7 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "string",
+                    "format": "uuid",
                     "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
                 }
             }

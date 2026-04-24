@@ -42,7 +42,7 @@ var (
 	errUserIDEmpty          = errors.New("user_id must not be empty")
 	errUserIDMultipleValues = errors.New("user_id must be specified once")
 	errServiceNameRequired  = errors.New("service_name must not be empty")
-	errPriceInvalid         = errors.New("price must be greater than zero")
+	errPriceInvalid         = errors.New("price must not be negative")
 	errStartDateRequired    = errors.New("start_date is required")
 	errEndDateBeforeStart   = errors.New("end_date must not be before start_date")
 )
@@ -84,8 +84,8 @@ func (f *filterTotal) ToDomain() (domain.FilterTotal, error) {
 
 type SubscriptionRequest struct {
 	ServiceName string  `json:"service_name" example:"Yandex Plus"`
-	Price       int     `json:"price" example:"400"`
-	UserID      string  `json:"user_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba"`
+	Price       int     `json:"price" example:"0" minimum:"0"`
+	UserID      string  `json:"user_id" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" format:"uuid"`
 	StartDate   string  `json:"start_date" example:"07-2025"`
 	EndDate     *string `json:"end_date,omitempty" example:"09-2025"`
 }
@@ -95,7 +95,7 @@ func (s *SubscriptionRequest) ToDomain() (domain.Subscription, error) {
 		return domain.Subscription{}, errServiceNameRequired
 	}
 
-	if s.Price <= 0 {
+	if s.Price < 0 {
 		return domain.Subscription{}, errPriceInvalid
 	}
 

@@ -17,7 +17,7 @@ func mapSubscriptionRequestError(err error) error {
 	case errors.Is(err, errServiceNameRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, "service_name must not be empty")
 	case errors.Is(err, errPriceInvalid):
-		return echo.NewHTTPError(http.StatusBadRequest, "price must be greater than zero")
+		return echo.NewHTTPError(http.StatusBadRequest, "price must not be negative")
 	case errors.Is(err, errStartDateRequired):
 		return echo.NewHTTPError(http.StatusBadRequest, "start_date is required")
 	case errors.Is(err, errDateEmpty):
