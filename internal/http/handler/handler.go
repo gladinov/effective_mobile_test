@@ -45,11 +45,11 @@ func NewHandler(logger *slog.Logger,
 
 func (h *handler) RegisterRoutes(router *echo.Echo) {
 	// TODO: Добавить healthcheck
-	router.POST("/subscriptions/create", h.Create)
-	router.GET("/subscriptions/get/:id", h.Get)
-	router.PUT("/subscriptions/update/:id", h.Update)
-	router.DELETE("/subscriptions/delete/:id", h.Delete)
-	router.GET("/subscriptions/list", h.List)
+	router.POST("/subscriptions", h.Create)
+	router.GET("/subscriptions/:id", h.Get)
+	router.PUT("/subscriptions/:id", h.Update)
+	router.DELETE("/subscriptions/:id", h.Delete)
+	router.GET("/subscriptions", h.List)
 	router.GET("/subscriptions/total", h.Total)
 }
 
