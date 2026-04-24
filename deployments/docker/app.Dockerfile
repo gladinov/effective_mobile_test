@@ -11,7 +11,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o ./bin/service ./cmd/app/main.go
 
-FROM alpine AS runner
+FROM alpine:3.23.4 AS runner
 RUN apk add --no-cache ca-certificates tzdata
 
 COPY --from=builder /usr/local/src/bin/service /

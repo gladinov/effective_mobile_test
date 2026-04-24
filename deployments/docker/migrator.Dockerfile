@@ -11,7 +11,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -o ./bin/migrator ./cmd/migrator/main.go
 
-FROM alpine AS runner
+FROM alpine:3.23.4 AS runner
 
 COPY --from=builder /usr/local/src/bin/migrator /
 

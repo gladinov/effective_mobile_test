@@ -27,7 +27,7 @@ func newDIContainer(logger *slog.Logger, config config.ServiceConfig) *diContain
 }
 
 func (d *diContainer) DB() service.Storage {
-	ctx, cancel := context.WithTimeout(context.Background(), d.cfg.Timeouts.DbQueryTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), d.cfg.Timeouts.DbConnectTimeout)
 	defer cancel()
 	if d.db == nil {
 		d.logger.Info("create new pool")
@@ -38,7 +38,7 @@ func (d *diContainer) DB() service.Storage {
 		}
 
 		d.logger.Info("create new storage")
-		storage := postgres.NewStorage(pool, d.cfg.Timeouts.DbConnectTimeout)
+		storage := postgres.NewStorage(pool, d.cfg.Timeouts.DbQueryTimeout)
 
 		closer.Add("postgres DB", func(_ context.Context) error {
 			return storage.Close()

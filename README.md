@@ -119,6 +119,7 @@ GET /subscriptions/total?user_id=60601fee-2bf1-4721-ae6f-7636e79a0cba&service_na
 - `POSTGRES_PASSWORD`
 - `POSTGRES_DB`
 - `POSTGRES_PORT`
+- `DB_CONNECT_TIMEOUT`
 - `REQUEST_TIMEOUT`
 - `DB_QUERY_TIMEOUT`
 
