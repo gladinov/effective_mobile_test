@@ -30,7 +30,7 @@ func TestHandlerCreate(t *testing.T) {
 		h := newTestHandler(service)
 
 		body := `{"service_name":"Yandex Plus","price":400,"user_id":"60601fee-2bf1-4721-ae6f-7636e79a0cba","start_date":"07-2025","end_date":"09-2025"}`
-		req := httptest.NewRequest(http.MethodPost, "/subscriptions/create", strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/subscriptions", strings.NewReader(body))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
@@ -62,7 +62,7 @@ func TestHandlerCreate(t *testing.T) {
 		h := newTestHandler(service)
 
 		body := `{"service_name":"Yandex Plus","price":400,"user_id":"","start_date":"07-2025"}`
-		req := httptest.NewRequest(http.MethodPost, "/subscriptions/create", strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/subscriptions", strings.NewReader(body))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
@@ -80,7 +80,7 @@ func TestHandlerCreate(t *testing.T) {
 		h := newTestHandler(service)
 
 		body := `{"service_name":"Yandex Plus","price":400,"user_id":"60601fee-2bf1-4721-ae6f-7636e79a0cba","start_date":"07-2025"}`
-		req := httptest.NewRequest(http.MethodPost, "/subscriptions/create", strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPost, "/subscriptions", strings.NewReader(body))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
@@ -119,7 +119,7 @@ func TestHandlerGet(t *testing.T) {
 			EndDate:     yearMonthPtrHandler(2025, time.September),
 		}, nil).Once()
 
-		req := httptest.NewRequest(http.MethodGet, "/subscriptions/get/"+subID.String(), nil)
+		req := httptest.NewRequest(http.MethodGet, "/subscriptions/"+subID.String(), nil)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
 		c.SetParamNames("id")
@@ -140,7 +140,7 @@ func TestHandlerGet(t *testing.T) {
 		subID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
 		service.On("GetByID", mock.Anything, subID).Return(domain.Subscription{}, domain.ErrSubscriptionNotFound).Once()
 
-		req := httptest.NewRequest(http.MethodGet, "/subscriptions/get/"+subID.String(), nil)
+		req := httptest.NewRequest(http.MethodGet, "/subscriptions/"+subID.String(), nil)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
 		c.SetParamNames("id")
@@ -157,7 +157,7 @@ func TestHandlerGet(t *testing.T) {
 		service := handlermocks.NewService(t)
 		h := newTestHandler(service)
 
-		req := httptest.NewRequest(http.MethodGet, "/subscriptions/get/not-uuid", nil)
+		req := httptest.NewRequest(http.MethodGet, "/subscriptions/not-uuid", nil)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
 		c.SetParamNames("id")
@@ -177,7 +177,7 @@ func TestHandlerGet(t *testing.T) {
 		subID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
 		service.On("GetByID", mock.Anything, subID).Return(domain.Subscription{}, assertErr()).Once()
 
-		req := httptest.NewRequest(http.MethodGet, "/subscriptions/get/"+subID.String(), nil)
+		req := httptest.NewRequest(http.MethodGet, "/subscriptions/"+subID.String(), nil)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
 		c.SetParamNames("id")
@@ -200,7 +200,7 @@ func TestHandlerUpdate(t *testing.T) {
 
 		subID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
 		body := `{"service_name":"Netflix","price":1200,"user_id":"60601fee-2bf1-4721-ae6f-7636e79a0cba","start_date":"01-2026","end_date":"03-2026"}`
-		req := httptest.NewRequest(http.MethodPut, "/subscriptions/update/"+subID.String(), strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPut, "/subscriptions/"+subID.String(), strings.NewReader(body))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
@@ -229,7 +229,7 @@ func TestHandlerUpdate(t *testing.T) {
 
 		subID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
 		body := `{"service_name":"Netflix","price":1200,"user_id":"60601fee-2bf1-4721-ae6f-7636e79a0cba","start_date":"03-2026","end_date":"01-2026"}`
-		req := httptest.NewRequest(http.MethodPut, "/subscriptions/update/"+subID.String(), strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPut, "/subscriptions/"+subID.String(), strings.NewReader(body))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
@@ -250,7 +250,7 @@ func TestHandlerUpdate(t *testing.T) {
 
 		subID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
 		body := `{"service_name":"Netflix","price":1200,"user_id":"60601fee-2bf1-4721-ae6f-7636e79a0cba","start_date":"01-2026"}`
-		req := httptest.NewRequest(http.MethodPut, "/subscriptions/update/"+subID.String(), strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPut, "/subscriptions/"+subID.String(), strings.NewReader(body))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
@@ -279,7 +279,7 @@ func TestHandlerUpdate(t *testing.T) {
 
 		subID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
 		body := `{"service_name":"Netflix","price":1200,"user_id":"60601fee-2bf1-4721-ae6f-7636e79a0cba","start_date":"01-2026"}`
-		req := httptest.NewRequest(http.MethodPut, "/subscriptions/update/"+subID.String(), strings.NewReader(body))
+		req := httptest.NewRequest(http.MethodPut, "/subscriptions/"+subID.String(), strings.NewReader(body))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
@@ -313,7 +313,7 @@ func TestHandlerDelete(t *testing.T) {
 		subID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
 		service.On("DeleteByID", mock.Anything, subID).Return(nil).Once()
 
-		req := httptest.NewRequest(http.MethodDelete, "/subscriptions/delete/"+subID.String(), nil)
+		req := httptest.NewRequest(http.MethodDelete, "/subscriptions/"+subID.String(), nil)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
 		c.SetParamNames("id")
@@ -333,7 +333,7 @@ func TestHandlerDelete(t *testing.T) {
 		subID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
 		service.On("DeleteByID", mock.Anything, subID).Return(domain.ErrSubscriptionNotFound).Once()
 
-		req := httptest.NewRequest(http.MethodDelete, "/subscriptions/delete/"+subID.String(), nil)
+		req := httptest.NewRequest(http.MethodDelete, "/subscriptions/"+subID.String(), nil)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
 		c.SetParamNames("id")
@@ -350,7 +350,7 @@ func TestHandlerDelete(t *testing.T) {
 		service := handlermocks.NewService(t)
 		h := newTestHandler(service)
 
-		req := httptest.NewRequest(http.MethodDelete, "/subscriptions/delete/not-uuid", nil)
+		req := httptest.NewRequest(http.MethodDelete, "/subscriptions/not-uuid", nil)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
 		c.SetParamNames("id")
@@ -370,7 +370,7 @@ func TestHandlerDelete(t *testing.T) {
 		subID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
 		service.On("DeleteByID", mock.Anything, subID).Return(assertErr()).Once()
 
-		req := httptest.NewRequest(http.MethodDelete, "/subscriptions/delete/"+subID.String(), nil)
+		req := httptest.NewRequest(http.MethodDelete, "/subscriptions/"+subID.String(), nil)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
 		c.SetParamNames("id")
@@ -392,7 +392,7 @@ func TestHandlerList(t *testing.T) {
 		h := newTestHandler(service)
 		service.On("List", mock.Anything).Return([]domain.Subscription{}, nil).Once()
 
-		req := httptest.NewRequest(http.MethodGet, "/subscriptions/list", nil)
+		req := httptest.NewRequest(http.MethodGet, "/subscriptions", nil)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
 
@@ -409,7 +409,7 @@ func TestHandlerList(t *testing.T) {
 		h := newTestHandler(service)
 		service.On("List", mock.Anything).Return(([]domain.Subscription)(nil), assertErr()).Once()
 
-		req := httptest.NewRequest(http.MethodGet, "/subscriptions/list", nil)
+		req := httptest.NewRequest(http.MethodGet, "/subscriptions", nil)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
 
