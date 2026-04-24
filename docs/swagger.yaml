@@ -10,6 +10,12 @@ definitions:
       error:
         type: string
     type: object
+  handler.HealthResponse:
+    properties:
+      status:
+        example: ok
+        type: string
+    type: object
   handler.SubscriptionRequest:
     properties:
       end_date:
@@ -56,6 +62,19 @@ info:
   title: Effective Mobile Test API
   version: "1.0"
 paths:
+  /health:
+    get:
+      description: Returns service health status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.HealthResponse'
+      summary: Healthcheck
+      tags:
+      - system
   /subscriptions:
     get:
       description: Returns all subscriptions

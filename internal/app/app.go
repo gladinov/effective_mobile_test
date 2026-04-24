@@ -53,9 +53,9 @@ func (a *App) initRouter() {
 	router := echo.New()
 
 	router.Use(middleware.CORS())
+	router.Use(middleware.Recover())
 	router.Use(mw.LoggerMiddleWare(a.logger))
 	router.HTTPErrorHandler = httperrors.HTTPErrorHandler(a.logger)
-	// TODO: почему не в RegisterRoutes?
 	router.GET("/swagger/*", echoSwagger.WrapHandler)
 	a.diContainer.Handler().RegisterRoutes(router)
 
@@ -103,7 +103,6 @@ func (a *App) Run() error {
 		}
 	}()
 
-	// TODO: не застрянем ли мы здесь навсегда при ошибке в горутна выше
 	select {
 	case <-ctx.Done():
 		a.logger.Info("shutdown signal received")

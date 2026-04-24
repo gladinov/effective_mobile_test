@@ -18,7 +18,7 @@ func main() {
 
 	err := migrator.Migrate(logger, cfg)
 	if err != nil {
-		logger.Error("failed to migrate", slog.Any("error", err))
+		logger.Error("migrate", slog.Any("error", err))
 	}
 	logger.Info("migrations postgres applied")
 }

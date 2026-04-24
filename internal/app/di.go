@@ -33,7 +33,7 @@ func (d *diContainer) DB() service.Storage {
 		d.logger.Info("create new pool")
 		pool, err := postgres.NewPool(ctx, d.cfg)
 		if err != nil {
-			d.logger.Error("failed to create postgres pool", slog.Any("error", err))
+			d.logger.Error("create postgres pool", slog.Any("error", err))
 			panic(err)
 		}
 

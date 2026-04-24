@@ -26,7 +26,6 @@ func mapYearMonthToSql(m domain.YearMonth) time.Time {
 	return time.Date(m.Year, m.Month, 1, 0, 0, 0, 0, time.UTC)
 }
 
-// TODO: Корректно ли это?
 func mapPtrYearMonthToSql(m *domain.YearMonth) *time.Time {
 	if m != nil {
 		date := time.Date(m.Year, m.Month, 1, 0, 0, 0, 0, time.UTC)

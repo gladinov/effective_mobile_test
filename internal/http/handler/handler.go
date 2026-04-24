@@ -44,13 +44,24 @@ func NewHandler(logger *slog.Logger,
 }
 
 func (h *handler) RegisterRoutes(router *echo.Echo) {
-	// TODO: Добавить healthcheck
+	router.GET("/health", h.Healthcheck)
 	router.POST("/subscriptions", h.Create)
 	router.GET("/subscriptions/:id", h.Get)
 	router.PUT("/subscriptions/:id", h.Update)
 	router.DELETE("/subscriptions/:id", h.Delete)
 	router.GET("/subscriptions", h.List)
 	router.GET("/subscriptions/total", h.Total)
+}
+
+// Healthcheck returns the application health status.
+// @Summary Healthcheck
+// @Description Returns service health status
+// @Tags system
+// @Produce json
+// @Success 200 {object} HealthResponse
+// @Router /health [get]
+func (h *handler) Healthcheck(c echo.Context) error {
+	return c.JSON(http.StatusOK, HealthResponse{Status: "ok"})
 }
 
 // Create creates a new subscription.
@@ -83,7 +94,7 @@ func (h *handler) Create(c echo.Context) error {
 
 	subID, err := h.service.Create(ctx, domainSub)
 	if err != nil {
-		h.logger.Error("failed to create subscription",
+		h.logger.Error("create subscription",
 			slog.Any("error", err),
 			slog.Any("subscription", domainSub),
 		)
@@ -123,7 +134,7 @@ func (h *handler) Get(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusNotFound, errNotFound)
 		}
 
-		h.logger.Error("failed to get subscription by id",
+		h.logger.Error("get subscription by id",
 			slog.Any("error", err),
 			slog.String("subscription_id", subID.String()),
 		)
@@ -176,7 +187,7 @@ func (h *handler) Update(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusNotFound, errNotFound)
 		}
 
-		h.logger.Error("failed to update subscription",
+		h.logger.Error("update subscription",
 			slog.Any("error", err),
 			slog.String("subscription_id", subID.String()),
 			slog.Any("subscription", domainSub),
@@ -214,7 +225,7 @@ func (h *handler) Delete(c echo.Context) error {
 			return echo.NewHTTPError(http.StatusNotFound, errNotFound)
 		}
 
-		h.logger.Error("failed to delete subscription",
+		h.logger.Error("delete subscription",
 			slog.Any("error", err),
 			slog.String("subscription_id", subID.String()),
 		)
@@ -239,7 +250,7 @@ func (h *handler) List(c echo.Context) error {
 
 	domainSubs, err := h.service.List(ctx)
 	if err != nil {
-		h.logger.Error("failed to list subscriptions",
+		h.logger.Error("list subscriptions",
 			slog.Any("error", err),
 		)
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
@@ -277,7 +288,7 @@ func (h *handler) Total(c echo.Context) error {
 
 	total, err := h.service.GetTotal(ctx, domainFilter)
 	if err != nil {
-		h.logger.Error("failed to get total",
+		h.logger.Error("get total",
 			slog.Any("error", err),
 			slog.Any("filter", domainFilter),
 		)

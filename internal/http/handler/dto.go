@@ -206,6 +206,10 @@ type CreateResponse struct {
 	SubID uuid.UUID `json:"subscription_id"`
 }
 
+type HealthResponse struct {
+	Status string `json:"status" example:"ok"`
+}
+
 type TotalResponse struct {
 	Total int `json:"total"`
 }

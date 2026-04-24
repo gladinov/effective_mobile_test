@@ -161,7 +161,7 @@ func TestServiceGetTotal_StorageError(t *testing.T) {
 	_, err := svc.GetTotal(context.Background(), domain.FilterTotal{})
 	require.Error(t, err)
 	require.ErrorIs(t, err, wantErr)
-	require.Contains(t, err.Error(), "failed to get filtered subscriptions from storage")
+	require.Contains(t, err.Error(), "get filtered subscriptions from storage")
 }
 
 func TestServiceGetByID(t *testing.T) {
@@ -214,7 +214,7 @@ func TestServiceGetByID(t *testing.T) {
 		_, err := svc.GetByID(context.Background(), subID)
 		require.Error(t, err)
 		require.ErrorIs(t, err, wantErr)
-		require.Contains(t, err.Error(), "failed to get sub by id from storage")
+		require.Contains(t, err.Error(), "get sub by id from storage")
 	})
 }
 
@@ -266,7 +266,7 @@ func TestServiceUpdateByID(t *testing.T) {
 		err := svc.UpdateByID(context.Background(), subID, sub)
 		require.Error(t, err)
 		require.ErrorIs(t, err, wantErr)
-		require.Contains(t, err.Error(), "failed to update sub by id in storage")
+		require.Contains(t, err.Error(), "update sub by id in storage")
 	})
 }
 
@@ -311,7 +311,7 @@ func TestServiceDeleteByID(t *testing.T) {
 		err := svc.DeleteByID(context.Background(), subID)
 		require.Error(t, err)
 		require.ErrorIs(t, err, wantErr)
-		require.Contains(t, err.Error(), "failed to delete sub by id in storage")
+		require.Contains(t, err.Error(), "delete sub by id in storage")
 	})
 }
 
