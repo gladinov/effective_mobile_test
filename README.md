@@ -2,7 +2,7 @@
 
 REST-сервис для агрегации данных об онлайн-подписках пользователей.
 
-Исходный текст тестового задания вынесен в [TEST_TASK.md](/home/mikhail/projects/VScodeProject/Go/currentProjects/effective_mobile_test/TEST_TASK.md).
+Исходный текст тестового задания вынесен в [TEST_TASK.md](./TEST_TASK.md).
 
 ## Что реализовано
 
