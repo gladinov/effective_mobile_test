@@ -19,7 +19,6 @@ type Postgres struct {
 	Password string `env:"POSTGRES_PASSWORD" env-required:"true"`
 	Dbname   string `env:"POSTGRES_DB" env-required:"true"`
 	Port     string `env:"POSTGRES_PORT" env-required:"true"`
-	PgUser   string `env:"PGUSER" env-required:"true"`
 	SslMode  string `env:"SSLMODE" env-required:"true"`
 }
 
