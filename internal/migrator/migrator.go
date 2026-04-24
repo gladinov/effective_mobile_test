@@ -16,12 +16,12 @@ func Migrate(logger *slog.Logger, cfg config.MigratorConfig) error {
 
 	databaseURL, err := cfg.Postgres.GetDSN()
 	if err != nil {
-		return e.WrapIfErr("failed to get dns from config", err)
+		return e.WrapIfErr("get dsn from config", err)
 	}
 
 	m, err := migrate.New(migrationsURL, databaseURL)
 	if err != nil {
-		return e.WrapIfErr("failed to get new migrate instatnce", err)
+		return e.WrapIfErr("new migrate instance", err)
 	}
 
 	if err := m.Up(); err != nil {
@@ -29,7 +29,7 @@ func Migrate(logger *slog.Logger, cfg config.MigratorConfig) error {
 			logger.Info("no migrations to apply")
 			return nil
 		}
-		return e.WrapIfErr("failed to do up migrate", err)
+		return e.WrapIfErr("up migrate", err)
 	}
 	return nil
 }

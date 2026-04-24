@@ -42,7 +42,7 @@ func (s *Service) GetByID(ctx context.Context, subID uuid.UUID) (domain.Subscrip
 		if errors.Is(err, domain.ErrSubscriptionNotFound) {
 			return sub, domain.ErrSubscriptionNotFound
 		}
-		return sub, e.WrapIfErr("failed to get sub by id from storage", err)
+		return sub, e.WrapIfErr("get sub by id from storage", err)
 	}
 	return sub, nil
 }
@@ -57,7 +57,7 @@ func (s *Service) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Su
 		if errors.Is(err, domain.ErrSubscriptionNotFound) {
 			return domain.ErrSubscriptionNotFound
 		}
-		return e.WrapIfErr("failed to update sub by id in storage", err)
+		return e.WrapIfErr("update sub by id in storage", err)
 	}
 	return nil
 }
@@ -68,7 +68,7 @@ func (s *Service) DeleteByID(ctx context.Context, subID uuid.UUID) error {
 		if errors.Is(err, domain.ErrSubscriptionNotFound) {
 			return domain.ErrSubscriptionNotFound
 		}
-		return e.WrapIfErr("failed to delete sub by id in storage", err)
+		return e.WrapIfErr("delete sub by id in storage", err)
 	}
 	return nil
 }
@@ -76,7 +76,7 @@ func (s *Service) DeleteByID(ctx context.Context, subID uuid.UUID) error {
 func (s *Service) GetTotal(ctx context.Context, filter domain.FilterTotal) (int, error) {
 	subs, err := s.storage.GetFilteredSubs(ctx, filter)
 	if err != nil {
-		return 0, e.WrapIfErr("failed to get filtered subscriptions from storage", err)
+		return 0, e.WrapIfErr("get filtered subscriptions from storage", err)
 	}
 	var sum int
 	for i := range subs {

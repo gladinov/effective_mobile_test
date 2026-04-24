@@ -44,9 +44,14 @@ func HTTPErrorHandler(logger *slog.Logger) echo.HTTPErrorHandler {
 				slog.Any("error", err),
 			)
 		}
-		// TODO: почему нет обработки?
-		_ = c.JSON(code, ErrorResponse{
+		if writeErr := c.JSON(code, ErrorResponse{
 			Error: message,
-		})
+		}); writeErr != nil {
+			logger.Error(
+				"write http error response",
+				slog.Int("status", code),
+				slog.Any("error", writeErr),
+			)
+		}
 	}
 }

@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-const defaultShutdownTimeout = 10 * time.Second
-
 type closeFn struct {
 	name string
 	fn   func(context.Context) error
@@ -65,7 +63,7 @@ func (c *closer) closeAll(ctx context.Context) error {
 			resourceCtx, resourceCancel := context.WithTimeout(ctx, resourceTimeout)
 
 			if err := f.fn(resourceCtx); err != nil {
-				slog.Error("failed to close resource",
+				slog.Error("close resource",
 					slog.String("name", f.name),
 					slog.Any("error", err),
 					slog.Duration("duration", time.Since(start)),
@@ -89,14 +87,11 @@ func (c *closer) closeAll(ctx context.Context) error {
 }
 
 func getResourceTimeout(ctx context.Context, resourceCount int) time.Duration {
-	var timeout time.Duration
 	deadline, ok := ctx.Deadline()
 	if !ok {
-		// TODO : Лучше вынести все таймауты в конфиг , чтобы было легче ориентироваться
-		timeout = defaultShutdownTimeout
-	} else {
-		timeout = time.Until(deadline)
+		return 0
 	}
+	timeout := time.Until(deadline)
 
 	if timeout <= 0 {
 		return 0

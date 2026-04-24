@@ -3,13 +3,13 @@
 # =========================
 
 COMPOSE_FILE = docker-compose.yml
-ENV_FILE = ./deployments/envs/dev.env #TODO: Поменять на prod.env
+ENV_FILE = ./deployments/envs/prod.env
 
 # =========================
 # Phony targets
 # =========================
 
-.PHONY: up build-up down swagger
+.PHONY: up build-up down swagger test test-integration
         
 # =========================
 # Docker: production
@@ -27,3 +27,9 @@ down:
 
 swagger:
 	go run github.com/swaggo/swag/cmd/swag@v1.16.2 init -g ./cmd/app/main.go -o ./docs --parseInternal
+
+test:
+	go test ./...
+
+test-integration:
+	go test -tags=integration ./...

@@ -26,12 +26,12 @@ func (s *Storage) Create(ctx context.Context, sub domain.Subscription) (uuid.UUI
 		Suffix("RETURNING " + colID).
 		ToSql()
 	if err != nil {
-		return uuid.UUID{}, e.WrapIfErr("failed to create query", err)
+		return uuid.UUID{}, e.WrapIfErr("create query", err)
 	}
 
 	var newID uuid.UUID
 	if err := s.db.QueryRow(ctx, insertSQL, insertArgs...).Scan(&newID); err != nil {
-		return uuid.UUID{}, e.WrapIfErr("failed to query row", err)
+		return uuid.UUID{}, e.WrapIfErr("query row", err)
 	}
 
 	return newID, nil
@@ -56,12 +56,12 @@ func (s *Storage) getRowByID(ctx context.Context, subID uuid.UUID) (subscription
 
 	selectSQL, selectArgs, err := query.ToSql()
 	if err != nil {
-		return subscriptionRow{}, e.WrapIfErr("failed to build select query", err)
+		return subscriptionRow{}, e.WrapIfErr("build select query", err)
 	}
 
 	rows, err := s.db.Query(ctx, selectSQL, selectArgs...)
 	if err != nil {
-		return subscriptionRow{}, e.WrapIfErr("failed to execute select query", err)
+		return subscriptionRow{}, e.WrapIfErr("execute select query", err)
 	}
 	defer rows.Close()
 
@@ -70,7 +70,7 @@ func (s *Storage) getRowByID(ctx context.Context, subID uuid.UUID) (subscription
 		if errors.Is(err, pgx.ErrNoRows) {
 			return subscriptionRow{}, domain.ErrSubscriptionNotFound
 		}
-		return subscriptionRow{}, e.WrapIfErr("failed to collect one row", err)
+		return subscriptionRow{}, e.WrapIfErr("collect one row", err)
 	}
 
 	return sub, nil
@@ -89,11 +89,11 @@ func (s *Storage) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Su
 		Where(sq.Eq{colID: subID}).
 		ToSql()
 	if err != nil {
-		return e.WrapIfErr("failed to build update query", err)
+		return e.WrapIfErr("build update query", err)
 	}
 	tag, err := s.db.Exec(ctx, updateSQL, updateArgs...)
 	if err != nil {
-		return e.WrapIfErr("failed to execute update query", err)
+		return e.WrapIfErr("execute update query", err)
 	}
 	if tag.RowsAffected() == 0 {
 		return domain.ErrSubscriptionNotFound
@@ -110,12 +110,12 @@ func (s *Storage) DeleteByID(ctx context.Context, subID uuid.UUID) error {
 		Where(sq.Eq{colID: subID}).
 		ToSql()
 	if err != nil {
-		return e.WrapIfErr("failed to build delete query", err)
+		return e.WrapIfErr("build delete query", err)
 	}
 
 	tag, err := s.db.Exec(ctx, deleteSQL, deleteArgs...)
 	if err != nil {
-		return e.WrapIfErr("failed to execute delete query", err)
+		return e.WrapIfErr("execute delete query", err)
 	}
 
 	if tag.RowsAffected() == 0 {
@@ -145,18 +145,18 @@ func (s *Storage) listRows(ctx context.Context) ([]subscriptionRow, error) {
 		From(subscriptionTable).
 		ToSql()
 	if err != nil {
-		return nil, e.WrapIfErr("failed to build select query", err)
+		return nil, e.WrapIfErr("build select query", err)
 	}
 
 	rows, err := s.db.Query(ctx, listSQL, listArgs...)
 	if err != nil {
-		return nil, e.WrapIfErr("failed to execute select query", err)
+		return nil, e.WrapIfErr("execute select query", err)
 	}
 	defer rows.Close()
 
 	subs, err := pgx.CollectRows(rows, pgx.RowToStructByName[subscriptionRow])
 	if err != nil {
-		return nil, e.WrapIfErr("failed to collect rows", err)
+		return nil, e.WrapIfErr("collect rows", err)
 	}
 
 	return subs, nil
@@ -165,7 +165,6 @@ func (s *Storage) listRows(ctx context.Context) ([]subscriptionRow, error) {
 func (s *Storage) GetFilteredSubs(ctx context.Context, filter domain.FilterTotal) ([]domain.Subscription, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
 	defer cancel()
-	// TODO: check from > to
 	subRows, err := s.getFiltredSubsRows(ctx, filter)
 	if err != nil {
 		return nil, err
@@ -186,17 +185,17 @@ func (s *Storage) getFiltredSubsRows(ctx context.Context, filter domain.FilterTo
 
 	totalSQL, totalArgs, err := queryWithFilters.ToSql()
 	if err != nil {
-		return nil, e.WrapIfErr("failed to build select query", err)
+		return nil, e.WrapIfErr("build select query", err)
 	}
 	rows, err := s.db.Query(ctx, totalSQL, totalArgs...)
 	if err != nil {
-		return nil, e.WrapIfErr("failed to execute select query", err)
+		return nil, e.WrapIfErr("execute select query", err)
 	}
 	defer rows.Close()
 
 	subs, err := pgx.CollectRows(rows, pgx.RowToStructByName[subscriptionRow])
 	if err != nil {
-		return nil, e.WrapIfErr("failed to collect rows", err)
+		return nil, e.WrapIfErr("collect rows", err)
 	}
 
 	return subs, nil
