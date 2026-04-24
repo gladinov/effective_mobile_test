@@ -7,6 +7,10 @@ import (
 	"github.com/gladinov/effective_mobile_test_assignment/internal/app"
 )
 
+// @title Effective Mobile Test API
+// @version 1.0
+// @description REST service for aggregating user subscriptions.
+// @BasePath /
 func main() {
 	a := app.New()
 

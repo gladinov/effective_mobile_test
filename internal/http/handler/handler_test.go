@@ -98,6 +98,34 @@ func TestHandlerCreate(t *testing.T) {
 		httpErr := requireHTTPError(t, err)
 		require.Equal(t, http.StatusInternalServerError, httpErr.Code)
 	})
+
+	t.Run("zero price is allowed", func(t *testing.T) {
+		t.Parallel()
+
+		service := handlermocks.NewService(t)
+		h := newTestHandler(service)
+
+		body := `{"service_name":"Free Plan","price":0,"user_id":"60601fee-2bf1-4721-ae6f-7636e79a0cba","start_date":"07-2025"}`
+		req := httptest.NewRequest(http.MethodPost, "/subscriptions", strings.NewReader(body))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := newTestEcho().NewContext(req, rec)
+
+		wantSub := domain.Subscription{
+			ServiceName: "Free Plan",
+			Price:       0,
+			UserID:      uuid.MustParse("60601fee-2bf1-4721-ae6f-7636e79a0cba"),
+			StartDate:   domain.YearMonth{Year: 2025, Month: time.July},
+			EndDate:     nil,
+		}
+		createdID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
+
+		service.On("Create", mock.Anything, wantSub).Return(createdID, nil).Once()
+
+		err := h.Create(c)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusCreated, rec.Code)
+	})
 }
 
 func TestHandlerGet(t *testing.T) {
