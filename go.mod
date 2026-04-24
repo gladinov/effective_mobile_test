@@ -12,6 +12,7 @@ require (
 	github.com/jackc/pgx/v5 v5.9.1
 	github.com/labstack/echo/v4 v4.15.1
 	github.com/stretchr/testify v1.11.1
+	github.com/swaggo/swag v1.16.2
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.42.0
 )
 
@@ -26,7 +27,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sv-tools/openapi v0.2.1 // indirect
 	github.com/swaggo/files/v2 v2.0.0 // indirect
-	github.com/swaggo/swag v1.16.2 // indirect
 	github.com/swaggo/swag/v2 v2.0.0-rc4 // indirect
 	golang.org/x/tools v0.41.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

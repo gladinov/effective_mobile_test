@@ -2,6 +2,7 @@ package main
 
 import (
 	"log/slog"
+	"os"
 
 	"github.com/gladinov/effective_mobile_test_assignment/internal/config"
 	"github.com/gladinov/effective_mobile_test_assignment/internal/migrator"
@@ -19,6 +20,7 @@ func main() {
 	err := migrator.Migrate(logger, cfg)
 	if err != nil {
 		logger.Error("migrate", slog.Any("error", err))
+		os.Exit(1)
 	}
 	logger.Info("migrations postgres applied")
 }

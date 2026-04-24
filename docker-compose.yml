@@ -9,6 +9,8 @@ services:
     depends_on:
       postgres-db:
         condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
     environment:
       ENV: ${ENV}
       HOST: ${HOST}
