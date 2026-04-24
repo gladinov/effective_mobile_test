@@ -1,0 +1,65 @@
+@host = http://localhost:8080
+@subscription_id = 81e2c3f0-fac8-4f27-9b1c-d320be1e5913
+@user_id = 60601fee-2bf1-4721-ae6f-7636e79a0cba
+
+### Healthcheck
+GET {{host}}/health
+Accept: application/json
+
+### Create subscription
+POST {{host}}/subscriptions
+Content-Type: application/json
+Accept: application/json
+
+{
+  "service_name": "Yandex Plus",
+  "price": 400,
+  "user_id": "{{user_id}}",
+  "start_date": "07-2025",
+  "end_date": "09-2025"
+}
+
+### Get subscription by ID
+GET {{host}}/subscriptions/{{subscription_id}}
+Accept: application/json
+
+### List subscriptions
+GET {{host}}/subscriptions
+Accept: application/json
+
+### Update subscription
+PUT {{host}}/subscriptions/{{subscription_id}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "service_name": "Yandex Plus",
+  "price": 0,
+  "user_id": "{{user_id}}",
+  "start_date": "07-2025",
+  "end_date": "12-2025"
+}
+
+### Delete subscription
+DELETE {{host}}/subscriptions/{{subscription_id}}
+Accept: application/json
+
+### Total subscriptions cost without filters
+GET {{host}}/subscriptions/total
+Accept: application/json
+
+### Total subscriptions cost filtered by user_id
+GET {{host}}/subscriptions/total?user_id={{user_id}}
+Accept: application/json
+
+### Total subscriptions cost filtered by service_name
+GET {{host}}/subscriptions/total?service_name=Yandex%20Plus
+Accept: application/json
+
+### Total subscriptions cost filtered by period
+GET {{host}}/subscriptions/total?from=07-2025&to=09-2025
+Accept: application/json
+
+### Total subscriptions cost with all filters
+GET {{host}}/subscriptions/total?user_id={{user_id}}&service_name=Yandex%20Plus&from=07-2025&to=09-2025
+Accept: application/json

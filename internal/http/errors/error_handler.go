@@ -1,0 +1,57 @@
+package httperrors
+
+import (
+	"errors"
+	"log/slog"
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+)
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}
+
+func HTTPErrorHandler(logger *slog.Logger) echo.HTTPErrorHandler {
+	return func(err error, c echo.Context) {
+		if c.Response().Committed {
+			return
+		}
+
+		var (
+			code    = http.StatusInternalServerError
+			message = "internal server error"
+		)
+
+		var he *echo.HTTPError
+		if errors.As(err, &he) {
+			code = he.Code
+
+			switch msg := he.Message.(type) {
+			case string:
+				message = msg
+			case error:
+				message = msg.Error()
+			default:
+				message = "unexpected error"
+			}
+		}
+
+		if code >= 500 {
+			logger.Error(
+				"http error",
+				slog.Int("status", code),
+				slog.Any("error", err),
+			)
+		}
+		if writeErr := c.JSON(code, ErrorResponse{
+			Error: message,
+		}); writeErr != nil {
+			logger.Error(
+				"write http error response",
+				slog.Int("status", code),
+				slog.Any("error", writeErr),
+			)
+		}
+	}
+}
