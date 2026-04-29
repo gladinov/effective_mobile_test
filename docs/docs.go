@@ -37,7 +37,7 @@ const docTemplate = `{
         },
         "/subscriptions": {
             "get": {
-                "description": "Returns all subscriptions",
+                "description": "Returns subscriptions with limit/offset pagination",
                 "produces": [
                     "application/json"
                 ],
@@ -45,6 +45,25 @@ const docTemplate = `{
                     "subscriptions"
                 ],
                 "summary": "List subscriptions",
+                "parameters": [
+                    {
+                        "maximum": 1000,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 100,
+                        "description": "Maximum number of records to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of records to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -53,6 +72,12 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/handler.SubscriptionResponse"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
                         }
                     },
                     "500": {

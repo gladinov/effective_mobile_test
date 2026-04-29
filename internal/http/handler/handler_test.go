@@ -418,7 +418,7 @@ func TestHandlerList(t *testing.T) {
 
 		service := handlermocks.NewService(t)
 		h := newTestHandler(service)
-		service.On("List", mock.Anything).Return([]domain.Subscription{}, nil).Once()
+		service.On("List", mock.Anything, domain.Pagination{Limit: defaultLimit, Offset: defaultOffset}).Return([]domain.Subscription{}, nil).Once()
 
 		req := httptest.NewRequest(http.MethodGet, "/subscriptions", nil)
 		rec := httptest.NewRecorder()
@@ -435,15 +435,30 @@ func TestHandlerList(t *testing.T) {
 
 		service := handlermocks.NewService(t)
 		h := newTestHandler(service)
-		service.On("List", mock.Anything).Return(([]domain.Subscription)(nil), assertErr()).Once()
+		service.On("List", mock.Anything, domain.Pagination{Limit: 10, Offset: 20}).Return(([]domain.Subscription)(nil), assertErr()).Once()
 
-		req := httptest.NewRequest(http.MethodGet, "/subscriptions", nil)
+		req := httptest.NewRequest(http.MethodGet, "/subscriptions?limit=10&offset=20", nil)
 		rec := httptest.NewRecorder()
 		c := newTestEcho().NewContext(req, rec)
 
 		err := h.List(c)
 		httpErr := requireHTTPError(t, err)
 		require.Equal(t, http.StatusInternalServerError, httpErr.Code)
+	})
+
+	t.Run("invalid pagination returns 400", func(t *testing.T) {
+		t.Parallel()
+
+		service := handlermocks.NewService(t)
+		h := newTestHandler(service)
+
+		req := httptest.NewRequest(http.MethodGet, "/subscriptions?limit=0", nil)
+		rec := httptest.NewRecorder()
+		c := newTestEcho().NewContext(req, rec)
+
+		err := h.List(c)
+		httpErr := requireHTTPError(t, err)
+		require.Equal(t, http.StatusBadRequest, httpErr.Code)
 	})
 }
 

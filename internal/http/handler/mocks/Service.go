@@ -121,9 +121,9 @@ func (_m *Service) GetTotal(ctx context.Context, filter domain.FilterTotal) (int
 	return r0, r1
 }
 
-// List provides a mock function with given fields: ctx
-func (_m *Service) List(ctx context.Context) ([]domain.Subscription, error) {
-	ret := _m.Called(ctx)
+// List provides a mock function with given fields: ctx, pagination
+func (_m *Service) List(ctx context.Context, pagination domain.Pagination) ([]domain.Subscription, error) {
+	ret := _m.Called(ctx, pagination)
 
 	if len(ret) == 0 {
 		panic("no return value specified for List")
@@ -131,19 +131,19 @@ func (_m *Service) List(ctx context.Context) ([]domain.Subscription, error) {
 
 	var r0 []domain.Subscription
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context) ([]domain.Subscription, error)); ok {
-		return rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, domain.Pagination) ([]domain.Subscription, error)); ok {
+		return rf(ctx, pagination)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context) []domain.Subscription); ok {
-		r0 = rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, domain.Pagination) []domain.Subscription); ok {
+		r0 = rf(ctx, pagination)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]domain.Subscription)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = rf(ctx)
+	if rf, ok := ret.Get(1).(func(context.Context, domain.Pagination) error); ok {
+		r1 = rf(ctx, pagination)
 	} else {
 		r1 = ret.Error(1)
 	}

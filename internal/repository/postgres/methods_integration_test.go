@@ -15,8 +15,8 @@ import (
 	"github.com/gladinov/effective_mobile_test_assignment/internal/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/stretchr/testify/require"
+	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
 const createSubscriptionsMigrationPath = "../../../deployments/migrations/postgreSQL/0001_create_subscriptions_table.up.sql"
@@ -258,9 +258,13 @@ func TestStorageListIntegration(t *testing.T) {
 	seedSubscription(t, ctx, pool, first)
 	seedSubscription(t, ctx, pool, second)
 
-	got, err := storage.List(ctx)
+	got, err := storage.List(ctx, domain.Pagination{Limit: 10, Offset: 0})
 	require.NoError(t, err)
 	require.ElementsMatch(t, []domain.Subscription{first, second}, got)
+
+	got, err = storage.List(ctx, domain.Pagination{Limit: 1, Offset: 1})
+	require.NoError(t, err)
+	require.Len(t, got, 1)
 }
 
 func TestStorageGetFilteredSubsIntegration(t *testing.T) {

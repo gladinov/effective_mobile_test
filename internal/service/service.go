@@ -28,7 +28,7 @@ type Storage interface {
 	GetByID(ctx context.Context, subID uuid.UUID) (domain.Subscription, error)
 	UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Subscription) error
 	DeleteByID(ctx context.Context, subID uuid.UUID) error
-	List(ctx context.Context) ([]domain.Subscription, error)
+	List(ctx context.Context, pagination domain.Pagination) ([]domain.Subscription, error)
 	GetFilteredSubs(ctx context.Context, filter domain.FilterTotal) ([]domain.Subscription, error)
 }
 
@@ -47,8 +47,8 @@ func (s *Service) GetByID(ctx context.Context, subID uuid.UUID) (domain.Subscrip
 	return sub, nil
 }
 
-func (s *Service) List(ctx context.Context) ([]domain.Subscription, error) {
-	return s.storage.List(ctx)
+func (s *Service) List(ctx context.Context, pagination domain.Pagination) ([]domain.Subscription, error) {
+	return s.storage.List(ctx, pagination)
 }
 
 func (s *Service) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Subscription) error {

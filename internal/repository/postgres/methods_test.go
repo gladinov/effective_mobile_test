@@ -22,9 +22,9 @@ func TestApplyFilters(t *testing.T) {
 		wantArgs []any
 	}{
 		{
-			name:    "without filters",
-			filter:  domain.FilterTotal{},
-			wantSQL: "SELECT id FROM subscriptions",
+			name:     "without filters",
+			filter:   domain.FilterTotal{},
+			wantSQL:  "SELECT id FROM subscriptions",
 			wantArgs: nil,
 		},
 		{
@@ -80,4 +80,20 @@ func TestApplyFilters(t *testing.T) {
 			require.Equal(t, tt.wantArgs, gotArgs)
 		})
 	}
+}
+
+func TestApplyPagination(t *testing.T) {
+	pagination := domain.Pagination{Limit: 10, Offset: 20}
+
+	gotSQL, gotArgs, err := psql.
+		Select(colID).
+		From(subscriptionTable).
+		OrderBy(colID).
+		Limit(pagination.Limit).
+		Offset(pagination.Offset).
+		ToSql()
+
+	require.NoError(t, err)
+	require.Equal(t, "SELECT id FROM subscriptions ORDER BY id LIMIT 10 OFFSET 20", gotSQL)
+	require.Nil(t, gotArgs)
 }
