@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gladinov/effective_mobile_test_assignment/internal/domain"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/require"
@@ -40,7 +41,7 @@ func TestGetQueryForTotal(t *testing.T) {
 		c := echo.New().NewContext(req, httptest.NewRecorder())
 
 		_, err := getQueryForTotal(c)
-		require.ErrorIs(t, err, errEndDateBeforeStart)
+		require.ErrorIs(t, err, domain.ErrEndDateBeforeStart)
 	})
 
 	t.Run("returns error for invalid user id", func(t *testing.T) {

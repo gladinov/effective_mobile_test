@@ -7,7 +7,11 @@ import (
 	"github.com/google/uuid"
 )
 
-var ErrSubscriptionNotFound error = errors.New("not found subscription by this ID")
+var (
+	ErrSubscriptionNotFound error = errors.New("not found subscription by this ID")
+	ErrEndDateBeforeStart   error = errors.New("end_date must not be before start_date")
+	ErrUpdateEmpty          error = errors.New("update payload must contain at least one field")
+)
 
 type Subscription struct {
 	ID          uuid.UUID
@@ -16,6 +20,31 @@ type Subscription struct {
 	UserID      uuid.UUID
 	StartDate   YearMonth
 	EndDate     *YearMonth
+}
+
+type SubscriptionUpdate struct {
+	ServiceName *string
+	Price       *int
+	UserID      *uuid.UUID
+	StartDate   *YearMonth
+	EndDate     EndDateUpdate
+}
+
+func (s SubscriptionUpdate) HasChanges() bool {
+	return s.ServiceName != nil ||
+		s.Price != nil ||
+		s.UserID != nil ||
+		s.StartDate != nil ||
+		s.EndDate.IsSet()
+}
+
+type EndDateUpdate struct {
+	Value *YearMonth
+	Clear bool
+}
+
+func (e EndDateUpdate) IsSet() bool {
+	return e.Value != nil || e.Clear
 }
 
 type YearMonth struct {

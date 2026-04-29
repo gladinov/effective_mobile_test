@@ -40,6 +40,25 @@ Accept: application/json
   "end_date": "12-2025"
 }
 
+### Partially update subscription
+PATCH {{host}}/subscriptions/{{subscription_id}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "price": 500,
+  "end_date": "12-2025"
+}
+
+### Clear subscription end date
+PATCH {{host}}/subscriptions/{{subscription_id}}
+Content-Type: application/json
+Accept: application/json
+
+{
+  "clear_end_date": true
+}
+
 ### Delete subscription
 DELETE {{host}}/subscriptions/{{subscription_id}}
 Accept: application/json

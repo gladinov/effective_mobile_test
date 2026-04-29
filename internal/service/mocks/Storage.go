@@ -170,6 +170,24 @@ func (_m *Storage) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.S
 	return r0
 }
 
+// UpdatePartialByID provides a mock function with given fields: ctx, subID, update
+func (_m *Storage) UpdatePartialByID(ctx context.Context, subID uuid.UUID, update domain.SubscriptionUpdate) error {
+	ret := _m.Called(ctx, subID, update)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdatePartialByID")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, domain.SubscriptionUpdate) error); ok {
+		r0 = rf(ctx, subID, update)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
 // NewStorage creates a new instance of Storage. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewStorage(t interface {

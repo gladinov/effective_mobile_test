@@ -82,6 +82,7 @@ make swagger
 - `GET /subscriptions?limit=100&offset=0` - получить список подписок с пагинацией
 - `GET /subscriptions/{id}` - получить подписку по ID
 - `PUT /subscriptions/{id}` - обновить подписку по ID
+- `PATCH /subscriptions/{id}` - частично обновить подписку по ID
 - `DELETE /subscriptions/{id}` - удалить подписку по ID
 - `GET /subscriptions/total` - посчитать суммарную стоимость подписок за период
 - `GET /health` - healthcheck сервиса
@@ -101,6 +102,23 @@ make swagger
 
 ```text
 GET /subscriptions?limit=100&offset=0
+```
+
+Пример частичного обновления подписки:
+
+```json
+{
+  "price": 500,
+  "end_date": "12-2025"
+}
+```
+
+Для очистки даты окончания:
+
+```json
+{
+  "clear_end_date": true
+}
 ```
 
 Пример запроса на подсчет суммы:
