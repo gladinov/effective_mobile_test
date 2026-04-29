@@ -270,6 +270,55 @@ func TestServiceUpdateByID(t *testing.T) {
 	})
 }
 
+func TestServiceUpdatePartialByID(t *testing.T) {
+	t.Parallel()
+
+	subID := uuid.MustParse("e994010b-55df-41d7-95b0-93a33f7011b4")
+	price := 500
+	update := domain.SubscriptionUpdate{
+		Price: &price,
+	}
+
+	t.Run("success", func(t *testing.T) {
+		t.Parallel()
+
+		storage := mocks.NewStorage(t)
+		storage.On("UpdatePartialByID", mock.Anything, subID, update).Return(nil).Once()
+
+		svc := NewService(storage)
+
+		err := svc.UpdatePartialByID(context.Background(), subID, update)
+		require.NoError(t, err)
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		t.Parallel()
+
+		storage := mocks.NewStorage(t)
+		storage.On("UpdatePartialByID", mock.Anything, subID, update).Return(domain.ErrSubscriptionNotFound).Once()
+
+		svc := NewService(storage)
+
+		err := svc.UpdatePartialByID(context.Background(), subID, update)
+		require.ErrorIs(t, err, domain.ErrSubscriptionNotFound)
+	})
+
+	t.Run("unexpected storage error", func(t *testing.T) {
+		t.Parallel()
+
+		wantErr := errors.New("storage failed")
+		storage := mocks.NewStorage(t)
+		storage.On("UpdatePartialByID", mock.Anything, subID, update).Return(wantErr).Once()
+
+		svc := NewService(storage)
+
+		err := svc.UpdatePartialByID(context.Background(), subID, update)
+		require.Error(t, err)
+		require.ErrorIs(t, err, wantErr)
+		require.Contains(t, err.Error(), "update partial sub by id in storage")
+	})
+}
+
 func TestServiceDeleteByID(t *testing.T) {
 	t.Parallel()
 

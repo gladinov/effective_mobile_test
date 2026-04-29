@@ -27,6 +27,7 @@ type Storage interface {
 	Create(ctx context.Context, sub domain.Subscription) (uuid.UUID, error)
 	GetByID(ctx context.Context, subID uuid.UUID) (domain.Subscription, error)
 	UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Subscription) error
+	UpdatePartialByID(ctx context.Context, subID uuid.UUID, update domain.SubscriptionUpdate) error
 	DeleteByID(ctx context.Context, subID uuid.UUID) error
 	List(ctx context.Context, pagination domain.Pagination) ([]domain.Subscription, error)
 	GetFilteredSubs(ctx context.Context, filter domain.FilterTotal) ([]domain.Subscription, error)
@@ -58,6 +59,17 @@ func (s *Service) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Su
 			return domain.ErrSubscriptionNotFound
 		}
 		return e.WrapIfErr("update sub by id in storage", err)
+	}
+	return nil
+}
+
+func (s *Service) UpdatePartialByID(ctx context.Context, subID uuid.UUID, update domain.SubscriptionUpdate) error {
+	err := s.storage.UpdatePartialByID(ctx, subID, update)
+	if err != nil {
+		if errors.Is(err, domain.ErrSubscriptionNotFound) {
+			return domain.ErrSubscriptionNotFound
+		}
+		return e.WrapIfErr("update partial sub by id in storage", err)
 	}
 	return nil
 }

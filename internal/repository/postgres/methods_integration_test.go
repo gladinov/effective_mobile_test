@@ -190,6 +190,77 @@ func TestStorageUpdateByIDIntegration_NotFound(t *testing.T) {
 	require.ErrorIs(t, err, domain.ErrSubscriptionNotFound)
 }
 
+func TestStorageUpdatePartialByIDIntegration(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	pool := newTestPostgresPool(ctx, t)
+	storage := NewStorage(pool, 5*time.Second)
+
+	subID := uuid.MustParse("9fcb8a75-a3c2-4988-81f7-287f313f663d")
+	original := domain.Subscription{
+		ID:          subID,
+		ServiceName: "Yandex Plus",
+		Price:       400,
+		UserID:      uuid.MustParse("60601fee-2bf1-4721-ae6f-7636e79a0cba"),
+		StartDate:   domain.YearMonth{Year: 2025, Month: time.July},
+		EndDate:     yearMonthPtr(2025, time.September),
+	}
+	seedSubscription(t, ctx, pool, original)
+
+	price := 500
+	endDate := domain.YearMonth{Year: 2025, Month: time.December}
+	err := storage.UpdatePartialByID(ctx, subID, domain.SubscriptionUpdate{
+		Price: &price,
+		EndDate: domain.EndDateUpdate{
+			Value: &endDate,
+		},
+	})
+	require.NoError(t, err)
+
+	got, err := storage.GetByID(ctx, subID)
+	require.NoError(t, err)
+	require.Equal(t, domain.Subscription{
+		ID:          original.ID,
+		ServiceName: original.ServiceName,
+		Price:       price,
+		UserID:      original.UserID,
+		StartDate:   original.StartDate,
+		EndDate:     &endDate,
+	}, got)
+
+	err = storage.UpdatePartialByID(ctx, subID, domain.SubscriptionUpdate{
+		EndDate: domain.EndDateUpdate{Clear: true},
+	})
+	require.NoError(t, err)
+
+	got, err = storage.GetByID(ctx, subID)
+	require.NoError(t, err)
+	require.Nil(t, got.EndDate)
+	require.Equal(t, price, got.Price)
+	require.Equal(t, original.ServiceName, got.ServiceName)
+	require.Equal(t, original.UserID, got.UserID)
+	require.Equal(t, original.StartDate, got.StartDate)
+}
+
+func TestStorageUpdatePartialByIDIntegration_NotFound(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	pool := newTestPostgresPool(ctx, t)
+	storage := NewStorage(pool, 5*time.Second)
+
+	price := 500
+	err := storage.UpdatePartialByID(ctx, uuid.MustParse("dd89f80d-afdc-4777-b506-328eb4a7eb60"), domain.SubscriptionUpdate{
+		Price: &price,
+	})
+	require.ErrorIs(t, err, domain.ErrSubscriptionNotFound)
+}
+
 func TestStorageDeleteByIDIntegration(t *testing.T) {
 	t.Parallel()
 

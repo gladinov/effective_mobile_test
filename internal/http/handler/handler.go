@@ -21,6 +21,7 @@ type Service interface {
 	Create(ctx context.Context, sub domain.Subscription) (uuid.UUID, error)
 	GetByID(ctx context.Context, subID uuid.UUID) (domain.Subscription, error)
 	UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Subscription) error
+	UpdatePartialByID(ctx context.Context, subID uuid.UUID, update domain.SubscriptionUpdate) error
 	DeleteByID(ctx context.Context, subID uuid.UUID) error
 	List(ctx context.Context, pagination domain.Pagination) ([]domain.Subscription, error)
 	GetTotal(ctx context.Context, filter domain.FilterTotal) (int, error)
@@ -48,6 +49,7 @@ func (h *handler) RegisterRoutes(router *echo.Echo) {
 	router.POST("/subscriptions", h.Create)
 	router.GET("/subscriptions/:id", h.Get)
 	router.PUT("/subscriptions/:id", h.Update)
+	router.PATCH("/subscriptions/:id", h.UpdatePartial)
 	router.DELETE("/subscriptions/:id", h.Delete)
 	router.GET("/subscriptions", h.List)
 	router.GET("/subscriptions/total", h.Total)
@@ -191,6 +193,57 @@ func (h *handler) Update(c echo.Context) error {
 			slog.Any("error", err),
 			slog.String("subscription_id", subID.String()),
 			slog.Any("subscription", domainSub),
+		)
+		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
+// UpdatePartial partially updates a subscription by ID.
+// @Summary Partially update subscription
+// @Description Partially updates an existing subscription by its ID. Omitted fields are not changed. Use end_date to set an end date or clear_end_date=true to clear it; end_date and clear_end_date=true cannot be used together. Dates use MM-YYYY format.
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param id path string true "Subscription ID (UUID)"
+// @Param subscription body SubscriptionUpdateRequest true "Partial subscription payload. Omitted fields are not changed."
+// @Success 204
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /subscriptions/{id} [patch]
+func (h *handler) UpdatePartial(c echo.Context) error {
+	ctx := c.Request().Context()
+	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
+	defer cancel()
+
+	id := c.Param("id")
+	subID, err := uuid.Parse(id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, errInvalidUUID)
+	}
+
+	var subsReq SubscriptionUpdateRequest
+
+	err = c.Bind(&subsReq)
+	if err != nil {
+		return mapSubscriptionUpdateRequestError(err)
+	}
+	domainUpdate, err := subsReq.ToDomain()
+	if err != nil {
+		return mapSubscriptionUpdateRequestError(err)
+	}
+
+	err = h.service.UpdatePartialByID(ctx, subID, domainUpdate)
+	if err != nil {
+		if errors.Is(err, domain.ErrSubscriptionNotFound) {
+			return echo.NewHTTPError(http.StatusNotFound, errNotFound)
+		}
+
+		h.logger.Error("partial update subscription",
+			slog.Any("error", err),
+			slog.String("subscription_id", subID.String()),
+			slog.Any("subscription_update", domainUpdate),
 		)
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}

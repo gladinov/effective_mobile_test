@@ -44,12 +44,14 @@ var (
 )
 
 var (
-	errUserIDEmpty          = errors.New("user_id must not be empty")
-	errUserIDMultipleValues = errors.New("user_id must be specified once")
-	errServiceNameRequired  = errors.New("service_name must not be empty")
-	errPriceInvalid         = errors.New("price must not be negative")
-	errStartDateRequired    = errors.New("start_date is required")
-	errEndDateBeforeStart   = errors.New("end_date must not be before start_date")
+	errUserIDEmpty           = errors.New("user_id must not be empty")
+	errUserIDMultipleValues  = errors.New("user_id must be specified once")
+	errServiceNameRequired   = errors.New("service_name must not be empty")
+	errPriceInvalid          = errors.New("price must not be negative")
+	errStartDateRequired     = errors.New("start_date is required")
+	errEndDateBeforeStart    = errors.New("end_date must not be before start_date")
+	errUpdateEmpty           = errors.New("update payload must contain at least one field")
+	errEndDateUpdateConflict = errors.New("end_date and clear_end_date cannot be used together")
 )
 
 var (
@@ -145,6 +147,80 @@ func (s *SubscriptionRequest) ToDomain() (domain.Subscription, error) {
 		StartDate:   startDate,
 		EndDate:     endDate,
 	}, nil
+}
+
+type SubscriptionUpdateRequest struct {
+	ServiceName  *string `json:"service_name,omitempty" example:"Yandex Plus"`
+	Price        *int    `json:"price,omitempty" example:"500" minimum:"0"`
+	UserID       *string `json:"user_id,omitempty" example:"60601fee-2bf1-4721-ae6f-7636e79a0cba" format:"uuid"`
+	StartDate    *string `json:"start_date,omitempty" example:"07-2025"`
+	EndDate      *string `json:"end_date,omitempty" example:"09-2025"`
+	ClearEndDate *bool   `json:"clear_end_date,omitempty" example:"true"`
+}
+
+func (s *SubscriptionUpdateRequest) ToDomain() (domain.SubscriptionUpdate, error) {
+	var serviceName *string
+	if s.ServiceName != nil {
+		trimmedServiceName := strings.TrimSpace(*s.ServiceName)
+		if trimmedServiceName == "" {
+			return domain.SubscriptionUpdate{}, errServiceNameRequired
+		}
+		serviceName = &trimmedServiceName
+	}
+
+	if s.Price != nil && *s.Price < 0 {
+		return domain.SubscriptionUpdate{}, errPriceInvalid
+	}
+
+	var userID *uuid.UUID
+	if s.UserID != nil {
+		trimmedUserID := strings.TrimSpace(*s.UserID)
+		if trimmedUserID == "" {
+			return domain.SubscriptionUpdate{}, errUserIDEmpty
+		}
+
+		parsedUserID, err := uuid.Parse(trimmedUserID)
+		if err != nil {
+			return domain.SubscriptionUpdate{}, errInvalidUUID
+		}
+		userID = &parsedUserID
+	}
+
+	startDate, err := mapStringYearMonthToDomainPtr(s.StartDate)
+	if err != nil {
+		return domain.SubscriptionUpdate{}, err
+	}
+
+	endDate, err := mapStringYearMonthToDomainPtr(s.EndDate)
+	if err != nil {
+		return domain.SubscriptionUpdate{}, err
+	}
+
+	clearEndDate := s.ClearEndDate != nil && *s.ClearEndDate
+	if endDate != nil && clearEndDate {
+		return domain.SubscriptionUpdate{}, errEndDateUpdateConflict
+	}
+
+	if endDate != nil && startDate != nil && endDate.CountOfMonth() < startDate.CountOfMonth() {
+		return domain.SubscriptionUpdate{}, errEndDateBeforeStart
+	}
+
+	update := domain.SubscriptionUpdate{
+		ServiceName: serviceName,
+		Price:       s.Price,
+		UserID:      userID,
+		StartDate:   startDate,
+		EndDate: domain.EndDateUpdate{
+			Value: endDate,
+			Clear: clearEndDate,
+		},
+	}
+
+	if !update.HasChanges() {
+		return domain.SubscriptionUpdate{}, errUpdateEmpty
+	}
+
+	return update, nil
 }
 
 type SubscriptionResponse struct {

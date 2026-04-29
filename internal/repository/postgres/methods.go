@@ -102,6 +102,29 @@ func (s *Storage) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Su
 	return nil
 }
 
+func (s *Storage) UpdatePartialByID(ctx context.Context, subID uuid.UUID, update domain.SubscriptionUpdate) error {
+	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
+	defer cancel()
+
+	query := psql.Update(subscriptionTable)
+	query = applySubscriptionUpdate(update, query)
+	query = query.Where(sq.Eq{colID: subID})
+
+	updateSQL, updateArgs, err := query.ToSql()
+	if err != nil {
+		return e.WrapIfErr("build partial update query", err)
+	}
+	tag, err := s.db.Exec(ctx, updateSQL, updateArgs...)
+	if err != nil {
+		return e.WrapIfErr("execute partial update query", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrSubscriptionNotFound
+	}
+
+	return nil
+}
+
 func (s *Storage) DeleteByID(ctx context.Context, subID uuid.UUID) error {
 	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
 	defer cancel()
@@ -202,44 +225,4 @@ func (s *Storage) getFiltredSubsRows(ctx context.Context, filter domain.FilterTo
 	}
 
 	return subs, nil
-}
-
-func applyFilters(filter domain.FilterTotal, query sq.SelectBuilder) sq.SelectBuilder {
-	if filter.UserID != nil {
-		query = query.
-			Where(sq.Eq{colUserID: *filter.UserID})
-	}
-
-	if filter.ServiceName != nil {
-		query = query.
-			Where(sq.Eq{colServiceName: *filter.ServiceName})
-	}
-
-	switch {
-	case filter.From != nil && filter.To != nil:
-		from := mapYearMonthToSql(*filter.From)
-		to := mapYearMonthToSql(*filter.To)
-		query = query.Where(
-			sq.LtOrEq{colStartDate: to},
-		).Where(
-			sq.Or{
-				sq.Expr(colEndDate + " IS NULL"),
-				sq.GtOrEq{colEndDate: from},
-			},
-		)
-	case filter.To != nil:
-		to := mapYearMonthToSql(*filter.To)
-		query = query.Where(
-			sq.LtOrEq{colStartDate: to},
-		)
-	case filter.From != nil:
-		from := mapYearMonthToSql(*filter.From)
-		query = query.Where(
-			sq.Or{
-				sq.Expr(colEndDate + " IS NULL"),
-				sq.GtOrEq{colEndDate: from},
-			},
-		)
-	}
-	return query
 }

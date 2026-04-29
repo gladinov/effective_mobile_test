@@ -18,6 +18,31 @@ type Subscription struct {
 	EndDate     *YearMonth
 }
 
+type SubscriptionUpdate struct {
+	ServiceName *string
+	Price       *int
+	UserID      *uuid.UUID
+	StartDate   *YearMonth
+	EndDate     EndDateUpdate
+}
+
+func (s SubscriptionUpdate) HasChanges() bool {
+	return s.ServiceName != nil ||
+		s.Price != nil ||
+		s.UserID != nil ||
+		s.StartDate != nil ||
+		s.EndDate.IsSet()
+}
+
+type EndDateUpdate struct {
+	Value *YearMonth
+	Clear bool
+}
+
+func (e EndDateUpdate) IsSet() bool {
+	return e.Value != nil || e.Clear
+}
+
 type YearMonth struct {
 	Year  int
 	Month time.Month

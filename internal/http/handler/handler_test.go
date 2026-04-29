@@ -329,6 +329,129 @@ func TestHandlerUpdate(t *testing.T) {
 	})
 }
 
+func TestHandlerUpdatePartial(t *testing.T) {
+	t.Parallel()
+
+	t.Run("success sets provided fields", func(t *testing.T) {
+		t.Parallel()
+
+		service := handlermocks.NewService(t)
+		h := newTestHandler(service)
+
+		subID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
+		body := `{"price":500,"end_date":"12-2025"}`
+		req := httptest.NewRequest(http.MethodPatch, "/subscriptions/"+subID.String(), strings.NewReader(body))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := newTestEcho().NewContext(req, rec)
+		c.SetParamNames("id")
+		c.SetParamValues(subID.String())
+
+		price := 500
+		wantUpdate := domain.SubscriptionUpdate{
+			Price: &price,
+			EndDate: domain.EndDateUpdate{
+				Value: yearMonthPtrHandler(2025, time.December),
+			},
+		}
+		service.On("UpdatePartialByID", mock.Anything, subID, wantUpdate).Return(nil).Once()
+
+		err := h.UpdatePartial(c)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, rec.Code)
+	})
+
+	t.Run("success clears end date", func(t *testing.T) {
+		t.Parallel()
+
+		service := handlermocks.NewService(t)
+		h := newTestHandler(service)
+
+		subID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
+		body := `{"clear_end_date":true}`
+		req := httptest.NewRequest(http.MethodPatch, "/subscriptions/"+subID.String(), strings.NewReader(body))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := newTestEcho().NewContext(req, rec)
+		c.SetParamNames("id")
+		c.SetParamValues(subID.String())
+
+		wantUpdate := domain.SubscriptionUpdate{
+			EndDate: domain.EndDateUpdate{Clear: true},
+		}
+		service.On("UpdatePartialByID", mock.Anything, subID, wantUpdate).Return(nil).Once()
+
+		err := h.UpdatePartial(c)
+		require.NoError(t, err)
+		require.Equal(t, http.StatusNoContent, rec.Code)
+	})
+
+	t.Run("empty update returns bad request", func(t *testing.T) {
+		t.Parallel()
+
+		service := handlermocks.NewService(t)
+		h := newTestHandler(service)
+
+		subID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
+		req := httptest.NewRequest(http.MethodPatch, "/subscriptions/"+subID.String(), strings.NewReader(`{}`))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := newTestEcho().NewContext(req, rec)
+		c.SetParamNames("id")
+		c.SetParamValues(subID.String())
+
+		err := h.UpdatePartial(c)
+		httpErr := requireHTTPError(t, err)
+		require.Equal(t, http.StatusBadRequest, httpErr.Code)
+		require.Equal(t, "update payload must contain at least one field", httpErr.Message)
+	})
+
+	t.Run("end date conflict returns bad request", func(t *testing.T) {
+		t.Parallel()
+
+		service := handlermocks.NewService(t)
+		h := newTestHandler(service)
+
+		subID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
+		body := `{"end_date":"12-2025","clear_end_date":true}`
+		req := httptest.NewRequest(http.MethodPatch, "/subscriptions/"+subID.String(), strings.NewReader(body))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := newTestEcho().NewContext(req, rec)
+		c.SetParamNames("id")
+		c.SetParamValues(subID.String())
+
+		err := h.UpdatePartial(c)
+		httpErr := requireHTTPError(t, err)
+		require.Equal(t, http.StatusBadRequest, httpErr.Code)
+		require.Equal(t, "end_date and clear_end_date=true cannot be used together", httpErr.Message)
+	})
+
+	t.Run("not found returns 404", func(t *testing.T) {
+		t.Parallel()
+
+		service := handlermocks.NewService(t)
+		h := newTestHandler(service)
+
+		subID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
+		body := `{"service_name":"Netflix"}`
+		req := httptest.NewRequest(http.MethodPatch, "/subscriptions/"+subID.String(), strings.NewReader(body))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := newTestEcho().NewContext(req, rec)
+		c.SetParamNames("id")
+		c.SetParamValues(subID.String())
+
+		serviceName := "Netflix"
+		wantUpdate := domain.SubscriptionUpdate{ServiceName: &serviceName}
+		service.On("UpdatePartialByID", mock.Anything, subID, wantUpdate).Return(domain.ErrSubscriptionNotFound).Once()
+
+		err := h.UpdatePartial(c)
+		httpErr := requireHTTPError(t, err)
+		require.Equal(t, http.StatusNotFound, httpErr.Code)
+	})
+}
+
 func TestHandlerDelete(t *testing.T) {
 	t.Parallel()
 

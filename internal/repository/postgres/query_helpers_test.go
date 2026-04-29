@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
 	"github.com/gladinov/effective_mobile_test_assignment/internal/domain"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
@@ -96,4 +97,50 @@ func TestApplyPagination(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "SELECT id FROM subscriptions ORDER BY id LIMIT 10 OFFSET 20", gotSQL)
 	require.Nil(t, gotArgs)
+}
+
+func TestApplySubscriptionUpdate(t *testing.T) {
+	serviceName := "Netflix"
+	price := 1200
+	userID := uuid.MustParse("60601fee-2bf1-4721-ae6f-7636e79a0cba")
+	startDate := domain.YearMonth{Year: 2026, Month: time.January}
+	endDate := domain.YearMonth{Year: 2026, Month: time.March}
+
+	update := domain.SubscriptionUpdate{
+		ServiceName: &serviceName,
+		Price:       &price,
+		UserID:      &userID,
+		StartDate:   &startDate,
+		EndDate: domain.EndDateUpdate{
+			Value: &endDate,
+		},
+	}
+
+	gotSQL, gotArgs, err := applySubscriptionUpdate(update, psql.Update(subscriptionTable)).
+		Where(sq.Eq{colID: uuid.Nil}).
+		ToSql()
+
+	require.NoError(t, err)
+	require.Equal(t, "UPDATE subscriptions SET service_name = $1, price = $2, user_id = $3, start_date = $4, end_date = $5 WHERE id = $6", gotSQL)
+	require.Equal(t, []any{
+		serviceName,
+		price,
+		userID,
+		time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2026, time.March, 1, 0, 0, 0, 0, time.UTC),
+		uuid.Nil.String(),
+	}, gotArgs)
+}
+
+func TestApplySubscriptionUpdate_ClearEndDate(t *testing.T) {
+	gotSQL, gotArgs, err := applySubscriptionUpdate(
+		domain.SubscriptionUpdate{EndDate: domain.EndDateUpdate{Clear: true}},
+		psql.Update(subscriptionTable),
+	).
+		Where(sq.Eq{colID: uuid.Nil}).
+		ToSql()
+
+	require.NoError(t, err)
+	require.Equal(t, "UPDATE subscriptions SET end_date = $1 WHERE id = $2", gotSQL)
+	require.Equal(t, []any{nil, uuid.Nil.String()}, gotArgs)
 }
