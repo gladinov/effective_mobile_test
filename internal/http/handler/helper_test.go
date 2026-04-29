@@ -54,6 +54,54 @@ func TestGetQueryForTotal(t *testing.T) {
 	})
 }
 
+func TestGetPaginationQuery(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns defaults when query params are absent", func(t *testing.T) {
+		t.Parallel()
+
+		req := httptest.NewRequest("GET", "/subscriptions", nil)
+		c := echo.New().NewContext(req, httptest.NewRecorder())
+
+		got, err := getPaginationQuery(c)
+		require.NoError(t, err)
+		require.Equal(t, defaultLimit, got.Limit)
+		require.Equal(t, defaultOffset, got.Offset)
+	})
+
+	t.Run("parses limit and offset", func(t *testing.T) {
+		t.Parallel()
+
+		req := httptest.NewRequest("GET", "/subscriptions?limit=25&offset=50", nil)
+		c := echo.New().NewContext(req, httptest.NewRecorder())
+
+		got, err := getPaginationQuery(c)
+		require.NoError(t, err)
+		require.Equal(t, uint64(25), got.Limit)
+		require.Equal(t, uint64(50), got.Offset)
+	})
+
+	t.Run("returns error when limit is zero", func(t *testing.T) {
+		t.Parallel()
+
+		req := httptest.NewRequest("GET", "/subscriptions?limit=0", nil)
+		c := echo.New().NewContext(req, httptest.NewRecorder())
+
+		_, err := getPaginationQuery(c)
+		require.ErrorIs(t, err, errLimitInvalid)
+	})
+
+	t.Run("returns error when offset is negative", func(t *testing.T) {
+		t.Parallel()
+
+		req := httptest.NewRequest("GET", "/subscriptions?offset=-1", nil)
+		c := echo.New().NewContext(req, httptest.NewRecorder())
+
+		_, err := getPaginationQuery(c)
+		require.ErrorIs(t, err, errOffsetInvalid)
+	})
+}
+
 func TestStringFromQueryParam(t *testing.T) {
 	t.Parallel()
 

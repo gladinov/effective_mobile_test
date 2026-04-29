@@ -125,10 +125,10 @@ func (s *Storage) DeleteByID(ctx context.Context, subID uuid.UUID) error {
 	return nil
 }
 
-func (s *Storage) List(ctx context.Context) ([]domain.Subscription, error) {
+func (s *Storage) List(ctx context.Context, pagination domain.Pagination) ([]domain.Subscription, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
 	defer cancel()
-	subRows, err := s.listRows(ctx)
+	subRows, err := s.listRows(ctx, pagination)
 	if err != nil {
 		return nil, err
 	}
@@ -139,10 +139,13 @@ func (s *Storage) List(ctx context.Context) ([]domain.Subscription, error) {
 	return res, nil
 }
 
-func (s *Storage) listRows(ctx context.Context) ([]subscriptionRow, error) {
+func (s *Storage) listRows(ctx context.Context, pagination domain.Pagination) ([]subscriptionRow, error) {
 	listSQL, listArgs, err := psql.
 		Select(colID, colServiceName, colPrice, colUserID, colStartDate, colEndDate).
 		From(subscriptionTable).
+		OrderBy(colID).
+		Limit(pagination.Limit).
+		Offset(pagination.Offset).
 		ToSql()
 	if err != nil {
 		return nil, e.WrapIfErr("build select query", err)

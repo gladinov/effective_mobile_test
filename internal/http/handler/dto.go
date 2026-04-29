@@ -12,17 +12,22 @@ import (
 )
 
 const (
-	userID      = "user_id"
-	serviceName = "service_name"
-	fromDate    = "from"
-	toDate      = "to"
+	userID               = "user_id"
+	serviceName          = "service_name"
+	fromDate             = "from"
+	toDate               = "to"
+	limit                = "limit"
+	offset               = "offset"
+	defaultLimit  uint64 = 100
+	maxLimit      uint64 = 1000
+	defaultOffset uint64 = 0
 )
 
 var (
-	errInvalidRequestBody      error = errors.New("invalid request body")
-	errGetData                 error = errors.New("internal error")
-	errInvalidUUID             error = errors.New("invalid uuid")
-	errNotFound                error = errors.New("not Found")
+	errInvalidRequestBody error = errors.New("invalid request body")
+	errGetData            error = errors.New("internal error")
+	errInvalidUUID        error = errors.New("invalid uuid")
+	errNotFound           error = errors.New("not Found")
 )
 
 var (
@@ -45,6 +50,16 @@ var (
 	errPriceInvalid         = errors.New("price must not be negative")
 	errStartDateRequired    = errors.New("start_date is required")
 	errEndDateBeforeStart   = errors.New("end_date must not be before start_date")
+)
+
+var (
+	errLimitEmpty           = errors.New("limit must not be empty")
+	errLimitMultipleValues  = errors.New("limit must be specified once")
+	errLimitInvalid         = errors.New("limit must be a positive integer")
+	errLimitTooLarge        = errors.New("limit exceeds maximum")
+	errOffsetEmpty          = errors.New("offset must not be empty")
+	errOffsetMultipleValues = errors.New("offset must be specified once")
+	errOffsetInvalid        = errors.New("offset must be a non-negative integer")
 )
 
 type filterTotal struct {

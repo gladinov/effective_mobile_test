@@ -79,7 +79,7 @@ make swagger
 ## Основные ручки
 
 - `POST /subscriptions` - создать подписку
-- `GET /subscriptions` - получить список подписок
+- `GET /subscriptions?limit=100&offset=0` - получить список подписок с пагинацией
 - `GET /subscriptions/{id}` - получить подписку по ID
 - `PUT /subscriptions/{id}` - обновить подписку по ID
 - `DELETE /subscriptions/{id}` - удалить подписку по ID
@@ -95,6 +95,12 @@ make swagger
   "user_id": "60601fee-2bf1-4721-ae6f-7636e79a0cba",
   "start_date": "07-2025"
 }
+```
+
+Пример запроса списка подписок:
+
+```text
+GET /subscriptions?limit=100&offset=0
 ```
 
 Пример запроса на подсчет суммы:

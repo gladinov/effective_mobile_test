@@ -22,7 +22,7 @@ type Service interface {
 	GetByID(ctx context.Context, subID uuid.UUID) (domain.Subscription, error)
 	UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Subscription) error
 	DeleteByID(ctx context.Context, subID uuid.UUID) error
-	List(ctx context.Context) ([]domain.Subscription, error)
+	List(ctx context.Context, pagination domain.Pagination) ([]domain.Subscription, error)
 	GetTotal(ctx context.Context, filter domain.FilterTotal) (int, error)
 }
 
@@ -235,12 +235,15 @@ func (h *handler) Delete(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
-// List returns all subscriptions.
+// List returns subscriptions.
 // @Summary List subscriptions
-// @Description Returns all subscriptions
+// @Description Returns subscriptions with limit/offset pagination
 // @Tags subscriptions
 // @Produce json
+// @Param limit query int false "Maximum number of records to return" default(100) minimum(1) maximum(1000)
+// @Param offset query int false "Number of records to skip" default(0) minimum(0)
 // @Success 200 {array} SubscriptionResponse
+// @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /subscriptions [get]
 func (h *handler) List(c echo.Context) error {
@@ -248,10 +251,16 @@ func (h *handler) List(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
 	defer cancel()
 
-	domainSubs, err := h.service.List(ctx)
+	pagination, err := getPaginationQuery(c)
+	if err != nil {
+		return mapPaginationQueryError(err)
+	}
+
+	domainSubs, err := h.service.List(ctx, pagination)
 	if err != nil {
 		h.logger.Error("list subscriptions",
 			slog.Any("error", err),
+			slog.Any("pagination", pagination),
 		)
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}

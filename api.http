@@ -24,7 +24,7 @@ GET {{host}}/subscriptions/{{subscription_id}}
 Accept: application/json
 
 ### List subscriptions
-GET {{host}}/subscriptions
+GET {{host}}/subscriptions?limit=100&offset=0
 Accept: application/json
 
 ### Update subscription

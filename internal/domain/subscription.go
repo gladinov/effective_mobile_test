@@ -40,3 +40,8 @@ type FilterTotal struct {
 	From        *YearMonth
 	To          *YearMonth
 }
+
+type Pagination struct {
+	Limit  uint64
+	Offset uint64
+}
