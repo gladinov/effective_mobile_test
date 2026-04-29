@@ -144,3 +144,74 @@ func TestApplySubscriptionUpdate_ClearEndDate(t *testing.T) {
 	require.Equal(t, "UPDATE subscriptions SET end_date = $1 WHERE id = $2", gotSQL)
 	require.Equal(t, []any{nil, uuid.Nil.String()}, gotArgs)
 }
+
+func TestTotalPaidQuery(t *testing.T) {
+	from := domain.YearMonth{Year: 2025, Month: time.August}
+	to := domain.YearMonth{Year: 2025, Month: time.September}
+	currentMonth := domain.YearMonth{Year: 2025, Month: time.October}
+
+	gotSQL, gotArgs, err := totalPaidQuery(domain.FilterTotal{
+		From: &from,
+		To:   &to,
+	}, currentMonth)
+
+	require.NoError(t, err)
+	require.Equal(
+		t,
+		`
+WITH effective_periods AS (
+    SELECT price, GREATEST(start_date, $1) AS effective_start, LEAST(COALESCE(end_date, $2), $3) AS effective_end FROM subscriptions WHERE start_date <= $4 AND (end_date IS NULL OR end_date >= $5)
+),
+paid_months AS (
+    SELECT
+        price,
+        GREATEST(
+            0,
+            (
+                (EXTRACT(YEAR FROM effective_end)::int -
+                 EXTRACT(YEAR FROM effective_start)::int) * 12
+                +
+                (EXTRACT(MONTH FROM effective_end)::int -
+                 EXTRACT(MONTH FROM effective_start)::int)
+                + 1
+            )
+        ) AS months
+    FROM effective_periods
+)
+SELECT COALESCE(SUM(price * months), 0)
+FROM paid_months`,
+		gotSQL,
+	)
+	require.Equal(t, []any{
+		time.Date(2025, time.August, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2025, time.October, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2025, time.September, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2025, time.September, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2025, time.August, 1, 0, 0, 0, 0, time.UTC),
+	}, gotArgs)
+}
+
+func TestEffectivePeriodsQuery(t *testing.T) {
+	from := domain.YearMonth{Year: 2025, Month: time.August}
+	to := domain.YearMonth{Year: 2025, Month: time.September}
+	currentMonth := domain.YearMonth{Year: 2025, Month: time.October}
+
+	gotSQL, gotArgs, err := effectivePeriodsQuery(domain.FilterTotal{
+		From: &from,
+		To:   &to,
+	}, currentMonth).ToSql()
+
+	require.NoError(t, err)
+	require.Equal(
+		t,
+		"SELECT price, GREATEST(start_date, $1) AS effective_start, LEAST(COALESCE(end_date, $2), $3) AS effective_end FROM subscriptions WHERE start_date <= $4 AND (end_date IS NULL OR end_date >= $5)",
+		gotSQL,
+	)
+	require.Equal(t, []any{
+		time.Date(2025, time.August, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2025, time.October, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2025, time.September, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2025, time.September, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2025, time.August, 1, 0, 0, 0, 0, time.UTC),
+	}, gotArgs)
+}

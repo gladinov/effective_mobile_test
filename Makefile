@@ -11,7 +11,7 @@ LINT_PACKAGES = ./cmd/app ./cmd/migrator ./docs ./internal/app ./internal/closer
 # Phony targets
 # =========================
 
-.PHONY: up build-up down swagger test test-integration lint
+.PHONY: up build-up down migrate build-up-app swagger test test-integration lint
         
 # =========================
 # Docker: production
@@ -27,6 +27,13 @@ build-up:
 down:
 	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) down -v
 
+migrate:
+	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) up --build migrator
+
+build-up-app:
+	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) down -v app
+	docker compose -f $(COMPOSE_FILE) --env-file $(ENV_FILE) up -d --build app
+
 swagger:
 	go run github.com/swaggo/swag/cmd/swag@v1.16.2 init -g ./cmd/app/main.go -o ./docs --parseInternal
 
@@ -38,3 +45,8 @@ test-integration:
 
 lint:
 	XDG_CACHE_HOME=/tmp GOLANGCI_LINT_CACHE=/tmp/golangci-lint $(GOLANGCI_LINT) run $(LINT_PACKAGES)
+
+
+
+
+

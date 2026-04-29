@@ -94,22 +94,22 @@ func (_m *Service) GetByID(ctx context.Context, subID uuid.UUID) (domain.Subscri
 }
 
 // GetTotal provides a mock function with given fields: ctx, filter
-func (_m *Service) GetTotal(ctx context.Context, filter domain.FilterTotal) (int, error) {
+func (_m *Service) GetTotal(ctx context.Context, filter domain.FilterTotal) (int64, error) {
 	ret := _m.Called(ctx, filter)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetTotal")
 	}
 
-	var r0 int
+	var r0 int64
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, domain.FilterTotal) (int, error)); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, domain.FilterTotal) (int64, error)); ok {
 		return rf(ctx, filter)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, domain.FilterTotal) int); ok {
+	if rf, ok := ret.Get(0).(func(context.Context, domain.FilterTotal) int64); ok {
 		r0 = rf(ctx, filter)
 	} else {
-		r0 = ret.Get(0).(int)
+		r0 = ret.Get(0).(int64)
 	}
 
 	if rf, ok := ret.Get(1).(func(context.Context, domain.FilterTotal) error); ok {

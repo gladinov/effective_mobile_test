@@ -204,43 +204,21 @@ func (s *Storage) listRows(ctx context.Context, pagination domain.Pagination) ([
 	return subs, nil
 }
 
-func (s *Storage) GetFilteredSubs(ctx context.Context, filter domain.FilterTotal) ([]domain.Subscription, error) {
+func (s *Storage) GetTotal(ctx context.Context, filter domain.FilterTotal, currentMonth domain.YearMonth) (int64, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
 	defer cancel()
-	subRows, err := s.getFiltredSubsRows(ctx, filter)
+
+	totalSQL, totalSQLArgs, err := totalPaidQuery(filter, currentMonth)
 	if err != nil {
-		return nil, err
-	}
-	res := make([]domain.Subscription, 0, len(subRows))
-	for i := range subRows {
-		res = append(res, subRows[i].ToDomain())
-	}
-	return res, nil
-}
-
-func (s *Storage) getFiltredSubsRows(ctx context.Context, filter domain.FilterTotal) ([]subscriptionRow, error) {
-	query := psql.
-		Select(colID, colServiceName, colPrice, colUserID, colStartDate, colEndDate).
-		From(subscriptionTable)
-
-	queryWithFilters := applyFilters(filter, query)
-
-	totalSQL, totalArgs, err := queryWithFilters.ToSql()
-	if err != nil {
-		return nil, e.WrapIfErr("build select query", err)
-	}
-	rows, err := s.db.Query(ctx, totalSQL, totalArgs...)
-	if err != nil {
-		return nil, e.WrapIfErr("execute select query", err)
-	}
-	defer rows.Close()
-
-	subs, err := pgx.CollectRows(rows, pgx.RowToStructByName[subscriptionRow])
-	if err != nil {
-		return nil, e.WrapIfErr("collect rows", err)
+		return 0, e.WrapIfErr("build total query", err)
 	}
 
-	return subs, nil
+	var total int64
+	if err := s.db.QueryRow(ctx, totalSQL, totalSQLArgs...).Scan(&total); err != nil {
+		return 0, e.WrapIfErr("query total", err)
+	}
+
+	return total, nil
 }
 
 func isConstraintViolation(err error, constraintName string) bool {

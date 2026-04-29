@@ -30,7 +30,7 @@ type Storage interface {
 	UpdatePartialByID(ctx context.Context, subID uuid.UUID, update domain.SubscriptionUpdate) error
 	DeleteByID(ctx context.Context, subID uuid.UUID) error
 	List(ctx context.Context, pagination domain.Pagination) ([]domain.Subscription, error)
-	GetFilteredSubs(ctx context.Context, filter domain.FilterTotal) ([]domain.Subscription, error)
+	GetTotal(ctx context.Context, filter domain.FilterTotal, currentMonth domain.YearMonth) (int64, error)
 }
 
 func (s *Service) Create(ctx context.Context, sub domain.Subscription) (uuid.UUID, error) {
@@ -131,14 +131,17 @@ func (s *Service) DeleteByID(ctx context.Context, subID uuid.UUID) error {
 	return nil
 }
 
-func (s *Service) GetTotal(ctx context.Context, filter domain.FilterTotal) (int, error) {
-	subs, err := s.storage.GetFilteredSubs(ctx, filter)
+func (s *Service) GetTotal(ctx context.Context, filter domain.FilterTotal) (int64, error) {
+	total, err := s.storage.GetTotal(ctx, filter, todayInYearMonth(s.now()))
 	if err != nil {
-		return 0, e.WrapIfErr("get filtered subscriptions from storage", err)
+		return 0, e.WrapIfErr("get total from storage", err)
 	}
-	var sum int
-	for i := range subs {
-		sum += pricePaidInPeriod(s.now, filter, subs[i])
+	return total, nil
+}
+
+func todayInYearMonth(t time.Time) domain.YearMonth {
+	return domain.YearMonth{
+		Year:  t.Year(),
+		Month: t.Month(),
 	}
-	return sum, nil
 }

@@ -300,7 +300,7 @@ type HealthResponse struct {
 }
 
 type TotalResponse struct {
-	Total int `json:"total"`
+	Total int64 `json:"total"`
 }
 
 type ErrorResponse struct {
