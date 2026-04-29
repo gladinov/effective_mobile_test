@@ -19,7 +19,10 @@ import (
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
-const createSubscriptionsMigrationPath = "../../../deployments/migrations/postgreSQL/0001_create_subscriptions_table.up.sql"
+const (
+	createSubscriptionsMigrationPath = "../../../deployments/migrations/postgreSQL/0001_create_subscriptions_table.up.sql"
+	addDatesCheckMigrationPath       = "../../../deployments/migrations/postgreSQL/0002_add_subscription_dates_check.up.sql"
+)
 
 func TestStorageCreateIntegration(t *testing.T) {
 	t.Parallel()
@@ -190,6 +193,35 @@ func TestStorageUpdateByIDIntegration_NotFound(t *testing.T) {
 	require.ErrorIs(t, err, domain.ErrSubscriptionNotFound)
 }
 
+func TestStorageUpdateByIDIntegration_EndDateBeforeStart(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	pool := newTestPostgresPool(ctx, t)
+	storage := NewStorage(pool, 5*time.Second)
+
+	subID := uuid.MustParse("2eb04677-cbf9-487e-bdcc-51c0fedbb593")
+	seedSubscription(t, ctx, pool, domain.Subscription{
+		ID:          subID,
+		ServiceName: "Yandex Plus",
+		Price:       400,
+		UserID:      uuid.MustParse("60601fee-2bf1-4721-ae6f-7636e79a0cba"),
+		StartDate:   domain.YearMonth{Year: 2025, Month: time.July},
+		EndDate:     nil,
+	})
+
+	err := storage.UpdateByID(ctx, subID, domain.Subscription{
+		ServiceName: "Yandex Plus",
+		Price:       400,
+		UserID:      uuid.MustParse("60601fee-2bf1-4721-ae6f-7636e79a0cba"),
+		StartDate:   domain.YearMonth{Year: 2025, Month: time.July},
+		EndDate:     yearMonthPtr(2025, time.June),
+	})
+	require.ErrorIs(t, err, domain.ErrEndDateBeforeStart)
+}
+
 func TestStorageUpdatePartialByIDIntegration(t *testing.T) {
 	t.Parallel()
 
@@ -272,6 +304,32 @@ func TestStorageUpdatePartialByIDIntegration_EmptyUpdate(t *testing.T) {
 
 	err := storage.UpdatePartialByID(ctx, uuid.MustParse("dd89f80d-afdc-4777-b506-328eb4a7eb60"), domain.SubscriptionUpdate{})
 	require.ErrorIs(t, err, domain.ErrUpdateEmpty)
+}
+
+func TestStorageUpdatePartialByIDIntegration_EndDateBeforeStart(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	pool := newTestPostgresPool(ctx, t)
+	storage := NewStorage(pool, 5*time.Second)
+
+	subID := uuid.MustParse("b8023115-030b-4d59-ba06-e44f83ecdb10")
+	seedSubscription(t, ctx, pool, domain.Subscription{
+		ID:          subID,
+		ServiceName: "Yandex Plus",
+		Price:       400,
+		UserID:      uuid.MustParse("60601fee-2bf1-4721-ae6f-7636e79a0cba"),
+		StartDate:   domain.YearMonth{Year: 2025, Month: time.July},
+		EndDate:     nil,
+	})
+
+	endDate := domain.YearMonth{Year: 2025, Month: time.June}
+	err := storage.UpdatePartialByID(ctx, subID, domain.SubscriptionUpdate{
+		EndDate: domain.EndDateUpdate{Value: &endDate},
+	})
+	require.ErrorIs(t, err, domain.ErrEndDateBeforeStart)
 }
 
 func TestStorageDeleteByIDIntegration(t *testing.T) {
@@ -443,7 +501,9 @@ func newTestPostgresPool(ctx context.Context, t *testing.T) *pgxpool.Pool {
 	t.Cleanup(pool.Close)
 
 	require.NoError(t, pool.Ping(ctx))
-	_, err = pool.Exec(ctx, mustReadCreateSubscriptionMigration(t))
+	_, err = pool.Exec(ctx, mustReadMigration(t, createSubscriptionsMigrationPath))
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, mustReadMigration(t, addDatesCheckMigrationPath))
 	require.NoError(t, err)
 
 	return pool
@@ -466,10 +526,10 @@ func seedSubscription(t *testing.T, ctx context.Context, pool *pgxpool.Pool, sub
 	require.NoError(t, err)
 }
 
-func mustReadCreateSubscriptionMigration(t *testing.T) string {
+func mustReadMigration(t *testing.T, path string) string {
 	t.Helper()
 
-	sqlBytes, err := os.ReadFile(filepath.Clean(createSubscriptionsMigrationPath))
+	sqlBytes, err := os.ReadFile(filepath.Clean(path))
 	require.NoError(t, err)
 
 	return string(sqlBytes)

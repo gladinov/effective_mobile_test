@@ -9,9 +9,12 @@ import (
 	"github.com/gladinov/effective_mobile_test_assignment/internal/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+const subscriptionDatesCheckConstraint = "subscriptions_end_date_after_start_date_check"
 
 func (s *Storage) Create(ctx context.Context, sub domain.Subscription) (uuid.UUID, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
@@ -31,6 +34,9 @@ func (s *Storage) Create(ctx context.Context, sub domain.Subscription) (uuid.UUI
 
 	var newID uuid.UUID
 	if err := s.db.QueryRow(ctx, insertSQL, insertArgs...).Scan(&newID); err != nil {
+		if isConstraintViolation(err, subscriptionDatesCheckConstraint) {
+			return uuid.UUID{}, domain.ErrEndDateBeforeStart
+		}
 		return uuid.UUID{}, e.WrapIfErr("query row", err)
 	}
 
@@ -93,6 +99,9 @@ func (s *Storage) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Su
 	}
 	tag, err := s.db.Exec(ctx, updateSQL, updateArgs...)
 	if err != nil {
+		if isConstraintViolation(err, subscriptionDatesCheckConstraint) {
+			return domain.ErrEndDateBeforeStart
+		}
 		return e.WrapIfErr("execute update query", err)
 	}
 	if tag.RowsAffected() == 0 {
@@ -120,6 +129,9 @@ func (s *Storage) UpdatePartialByID(ctx context.Context, subID uuid.UUID, update
 	}
 	tag, err := s.db.Exec(ctx, updateSQL, updateArgs...)
 	if err != nil {
+		if isConstraintViolation(err, subscriptionDatesCheckConstraint) {
+			return domain.ErrEndDateBeforeStart
+		}
 		return e.WrapIfErr("execute partial update query", err)
 	}
 	if tag.RowsAffected() == 0 {
@@ -229,4 +241,11 @@ func (s *Storage) getFiltredSubsRows(ctx context.Context, filter domain.FilterTo
 	}
 
 	return subs, nil
+}
+
+func isConstraintViolation(err error, constraintName string) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) &&
+		pgErr.Code == "23514" &&
+		pgErr.ConstraintName == constraintName
 }
