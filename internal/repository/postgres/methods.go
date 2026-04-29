@@ -103,6 +103,10 @@ func (s *Storage) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Su
 }
 
 func (s *Storage) UpdatePartialByID(ctx context.Context, subID uuid.UUID, update domain.SubscriptionUpdate) error {
+	if !update.HasChanges() {
+		return domain.ErrUpdateEmpty
+	}
+
 	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
 	defer cancel()
 

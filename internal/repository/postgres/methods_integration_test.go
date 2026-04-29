@@ -261,6 +261,19 @@ func TestStorageUpdatePartialByIDIntegration_NotFound(t *testing.T) {
 	require.ErrorIs(t, err, domain.ErrSubscriptionNotFound)
 }
 
+func TestStorageUpdatePartialByIDIntegration_EmptyUpdate(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	pool := newTestPostgresPool(ctx, t)
+	storage := NewStorage(pool, 5*time.Second)
+
+	err := storage.UpdatePartialByID(ctx, uuid.MustParse("dd89f80d-afdc-4777-b506-328eb4a7eb60"), domain.SubscriptionUpdate{})
+	require.ErrorIs(t, err, domain.ErrUpdateEmpty)
+}
+
 func TestStorageDeleteByIDIntegration(t *testing.T) {
 	t.Parallel()
 

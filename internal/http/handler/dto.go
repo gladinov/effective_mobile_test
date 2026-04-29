@@ -27,7 +27,7 @@ var (
 	errInvalidRequestBody error = errors.New("invalid request body")
 	errGetData            error = errors.New("internal error")
 	errInvalidUUID        error = errors.New("invalid uuid")
-	errNotFound           error = errors.New("not Found")
+	errNotFound           error = errors.New("not found")
 )
 
 var (
