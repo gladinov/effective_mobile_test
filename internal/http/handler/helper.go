@@ -118,7 +118,7 @@ func getQueryForTotal(c echo.Context) (domain.FilterTotal, error) {
 
 	if domainFilter.From != nil && domainFilter.To != nil &&
 		domainFilter.To.CountOfMonth() < domainFilter.From.CountOfMonth() {
-		return domain.FilterTotal{}, errEndDateBeforeStart
+		return domain.FilterTotal{}, domain.ErrEndDateBeforeStart
 	}
 
 	return domainFilter, nil

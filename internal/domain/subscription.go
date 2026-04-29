@@ -7,7 +7,10 @@ import (
 	"github.com/google/uuid"
 )
 
-var ErrSubscriptionNotFound error = errors.New("not found subscription by this ID")
+var (
+	ErrSubscriptionNotFound error = errors.New("not found subscription by this ID")
+	ErrEndDateBeforeStart   error = errors.New("end_date must not be before start_date")
+)
 
 type Subscription struct {
 	ID          uuid.UUID

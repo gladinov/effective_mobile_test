@@ -28,7 +28,7 @@ func mapSubscriptionRequestError(err error) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "month must be between 1 and 12")
 	case errors.Is(err, errYearOutOfRange):
 		return echo.NewHTTPError(http.StatusBadRequest, "year must be greater than zero")
-	case errors.Is(err, errEndDateBeforeStart):
+	case errors.Is(err, domain.ErrEndDateBeforeStart):
 		return echo.NewHTTPError(http.StatusBadRequest, "end_date must not be before start_date")
 	default:
 		return echo.NewHTTPError(http.StatusBadRequest, errInvalidRequestBody)
@@ -89,7 +89,7 @@ func mapTotalQueryError(err error) error {
 	case errors.Is(err, errYearOutOfRange):
 		return echo.NewHTTPError(http.StatusBadRequest, "year must be greater than zero")
 
-	case errors.Is(err, errEndDateBeforeStart):
+	case errors.Is(err, domain.ErrEndDateBeforeStart):
 		return echo.NewHTTPError(http.StatusBadRequest, "to must not be before from")
 
 	default:

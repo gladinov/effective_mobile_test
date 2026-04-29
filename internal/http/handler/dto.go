@@ -49,7 +49,6 @@ var (
 	errServiceNameRequired   = errors.New("service_name must not be empty")
 	errPriceInvalid          = errors.New("price must not be negative")
 	errStartDateRequired     = errors.New("start_date is required")
-	errEndDateBeforeStart    = errors.New("end_date must not be before start_date")
 	errUpdateEmpty           = errors.New("update payload must contain at least one field")
 	errEndDateUpdateConflict = errors.New("end_date and clear_end_date cannot be used together")
 )
@@ -137,7 +136,7 @@ func (s *SubscriptionRequest) ToDomain() (domain.Subscription, error) {
 	}
 
 	if endDate != nil && endDate.CountOfMonth() < startDate.CountOfMonth() {
-		return domain.Subscription{}, errEndDateBeforeStart
+		return domain.Subscription{}, domain.ErrEndDateBeforeStart
 	}
 
 	return domain.Subscription{
@@ -202,7 +201,7 @@ func (s *SubscriptionUpdateRequest) ToDomain() (domain.SubscriptionUpdate, error
 	}
 
 	if endDate != nil && startDate != nil && endDate.CountOfMonth() < startDate.CountOfMonth() {
-		return domain.SubscriptionUpdate{}, errEndDateBeforeStart
+		return domain.SubscriptionUpdate{}, domain.ErrEndDateBeforeStart
 	}
 
 	update := domain.SubscriptionUpdate{

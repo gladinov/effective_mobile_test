@@ -450,6 +450,34 @@ func TestHandlerUpdatePartial(t *testing.T) {
 		httpErr := requireHTTPError(t, err)
 		require.Equal(t, http.StatusNotFound, httpErr.Code)
 	})
+
+	t.Run("service date validation error returns bad request", func(t *testing.T) {
+		t.Parallel()
+
+		service := handlermocks.NewService(t)
+		h := newTestHandler(service)
+
+		subID := uuid.MustParse("5a012338-ae9e-45df-b657-c6b0a28d829a")
+		body := `{"end_date":"06-2025"}`
+		req := httptest.NewRequest(http.MethodPatch, "/subscriptions/"+subID.String(), strings.NewReader(body))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := newTestEcho().NewContext(req, rec)
+		c.SetParamNames("id")
+		c.SetParamValues(subID.String())
+
+		wantUpdate := domain.SubscriptionUpdate{
+			EndDate: domain.EndDateUpdate{
+				Value: yearMonthPtrHandler(2025, time.June),
+			},
+		}
+		service.On("UpdatePartialByID", mock.Anything, subID, wantUpdate).Return(domain.ErrEndDateBeforeStart).Once()
+
+		err := h.UpdatePartial(c)
+		httpErr := requireHTTPError(t, err)
+		require.Equal(t, http.StatusBadRequest, httpErr.Code)
+		require.Equal(t, "end_date must not be before start_date", httpErr.Message)
+	})
 }
 
 func TestHandlerDelete(t *testing.T) {

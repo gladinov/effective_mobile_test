@@ -317,6 +317,56 @@ func TestServiceUpdatePartialByID(t *testing.T) {
 		require.ErrorIs(t, err, wantErr)
 		require.Contains(t, err.Error(), "update partial sub by id in storage")
 	})
+
+	t.Run("returns error when end date is before existing start date", func(t *testing.T) {
+		t.Parallel()
+
+		endDate := domain.YearMonth{Year: 2025, Month: time.June}
+		update := domain.SubscriptionUpdate{
+			EndDate: domain.EndDateUpdate{Value: &endDate},
+		}
+		existingSub := domain.Subscription{
+			ID:          subID,
+			ServiceName: "Yandex Plus",
+			Price:       400,
+			UserID:      uuid.MustParse("60601fee-2bf1-4721-ae6f-7636e79a0cba"),
+			StartDate:   domain.YearMonth{Year: 2025, Month: time.July},
+			EndDate:     yearMonthPtr(2025, time.September),
+		}
+
+		storage := mocks.NewStorage(t)
+		storage.On("GetByID", mock.Anything, subID).Return(existingSub, nil).Once()
+
+		svc := NewService(storage)
+
+		err := svc.UpdatePartialByID(context.Background(), subID, update)
+		require.ErrorIs(t, err, domain.ErrEndDateBeforeStart)
+	})
+
+	t.Run("returns error when start date is after existing end date", func(t *testing.T) {
+		t.Parallel()
+
+		startDate := domain.YearMonth{Year: 2025, Month: time.October}
+		update := domain.SubscriptionUpdate{
+			StartDate: &startDate,
+		}
+		existingSub := domain.Subscription{
+			ID:          subID,
+			ServiceName: "Yandex Plus",
+			Price:       400,
+			UserID:      uuid.MustParse("60601fee-2bf1-4721-ae6f-7636e79a0cba"),
+			StartDate:   domain.YearMonth{Year: 2025, Month: time.July},
+			EndDate:     yearMonthPtr(2025, time.September),
+		}
+
+		storage := mocks.NewStorage(t)
+		storage.On("GetByID", mock.Anything, subID).Return(existingSub, nil).Once()
+
+		svc := NewService(storage)
+
+		err := svc.UpdatePartialByID(context.Background(), subID, update)
+		require.ErrorIs(t, err, domain.ErrEndDateBeforeStart)
+	})
 }
 
 func TestServiceDeleteByID(t *testing.T) {

@@ -236,6 +236,10 @@ func (h *handler) UpdatePartial(c echo.Context) error {
 
 	err = h.service.UpdatePartialByID(ctx, subID, domainUpdate)
 	if err != nil {
+		if errors.Is(err, domain.ErrEndDateBeforeStart) {
+			return mapSubscriptionUpdateRequestError(err)
+		}
+
 		if errors.Is(err, domain.ErrSubscriptionNotFound) {
 			return echo.NewHTTPError(http.StatusNotFound, errNotFound)
 		}
