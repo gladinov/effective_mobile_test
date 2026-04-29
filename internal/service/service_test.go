@@ -367,6 +367,16 @@ func TestServiceUpdatePartialByID(t *testing.T) {
 		err := svc.UpdatePartialByID(context.Background(), subID, update)
 		require.ErrorIs(t, err, domain.ErrEndDateBeforeStart)
 	})
+
+	t.Run("empty update returns error", func(t *testing.T) {
+		t.Parallel()
+
+		storage := mocks.NewStorage(t)
+		svc := NewService(storage)
+
+		err := svc.UpdatePartialByID(context.Background(), subID, domain.SubscriptionUpdate{})
+		require.ErrorIs(t, err, domain.ErrUpdateEmpty)
+	})
 }
 
 func TestServiceDeleteByID(t *testing.T) {

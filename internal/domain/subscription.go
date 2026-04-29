@@ -10,6 +10,7 @@ import (
 var (
 	ErrSubscriptionNotFound error = errors.New("not found subscription by this ID")
 	ErrEndDateBeforeStart   error = errors.New("end_date must not be before start_date")
+	ErrUpdateEmpty          error = errors.New("update payload must contain at least one field")
 )
 
 type Subscription struct {

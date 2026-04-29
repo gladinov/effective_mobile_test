@@ -37,7 +37,7 @@ func mapSubscriptionRequestError(err error) error {
 
 func mapSubscriptionUpdateRequestError(err error) error {
 	switch {
-	case errors.Is(err, errUpdateEmpty):
+	case errors.Is(err, domain.ErrUpdateEmpty):
 		return echo.NewHTTPError(http.StatusBadRequest, "update payload must contain at least one field")
 	case errors.Is(err, errEndDateUpdateConflict):
 		return echo.NewHTTPError(http.StatusBadRequest, "end_date and clear_end_date=true cannot be used together")

@@ -64,6 +64,10 @@ func (s *Service) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Su
 }
 
 func (s *Service) UpdatePartialByID(ctx context.Context, subID uuid.UUID, update domain.SubscriptionUpdate) error {
+	if !update.HasChanges() {
+		return domain.ErrUpdateEmpty
+	}
+
 	if err := s.validatePartialUpdateDates(ctx, subID, update); err != nil {
 		return err
 	}

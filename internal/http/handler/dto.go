@@ -49,7 +49,6 @@ var (
 	errServiceNameRequired   = errors.New("service_name must not be empty")
 	errPriceInvalid          = errors.New("price must not be negative")
 	errStartDateRequired     = errors.New("start_date is required")
-	errUpdateEmpty           = errors.New("update payload must contain at least one field")
 	errEndDateUpdateConflict = errors.New("end_date and clear_end_date cannot be used together")
 )
 
@@ -216,7 +215,7 @@ func (s *SubscriptionUpdateRequest) ToDomain() (domain.SubscriptionUpdate, error
 	}
 
 	if !update.HasChanges() {
-		return domain.SubscriptionUpdate{}, errUpdateEmpty
+		return domain.SubscriptionUpdate{}, domain.ErrUpdateEmpty
 	}
 
 	return update, nil
