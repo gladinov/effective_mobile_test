@@ -92,29 +92,27 @@ func (_m *Storage) GetByID(ctx context.Context, subID uuid.UUID) (domain.Subscri
 	return r0, r1
 }
 
-// GetFilteredSubs provides a mock function with given fields: ctx, filter
-func (_m *Storage) GetFilteredSubs(ctx context.Context, filter domain.FilterTotal) ([]domain.Subscription, error) {
-	ret := _m.Called(ctx, filter)
+// GetTotal provides a mock function with given fields: ctx, filter, currentMonth
+func (_m *Storage) GetTotal(ctx context.Context, filter domain.FilterTotal, currentMonth domain.YearMonth) (int64, error) {
+	ret := _m.Called(ctx, filter, currentMonth)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetFilteredSubs")
+		panic("no return value specified for GetTotal")
 	}
 
-	var r0 []domain.Subscription
+	var r0 int64
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, domain.FilterTotal) ([]domain.Subscription, error)); ok {
-		return rf(ctx, filter)
+	if rf, ok := ret.Get(0).(func(context.Context, domain.FilterTotal, domain.YearMonth) (int64, error)); ok {
+		return rf(ctx, filter, currentMonth)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, domain.FilterTotal) []domain.Subscription); ok {
-		r0 = rf(ctx, filter)
+	if rf, ok := ret.Get(0).(func(context.Context, domain.FilterTotal, domain.YearMonth) int64); ok {
+		r0 = rf(ctx, filter, currentMonth)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]domain.Subscription)
-		}
+		r0 = ret.Get(0).(int64)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, domain.FilterTotal) error); ok {
-		r1 = rf(ctx, filter)
+	if rf, ok := ret.Get(1).(func(context.Context, domain.FilterTotal, domain.YearMonth) error); ok {
+		r1 = rf(ctx, filter, currentMonth)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -122,9 +120,9 @@ func (_m *Storage) GetFilteredSubs(ctx context.Context, filter domain.FilterTota
 	return r0, r1
 }
 
-// List provides a mock function with given fields: ctx
-func (_m *Storage) List(ctx context.Context) ([]domain.Subscription, error) {
-	ret := _m.Called(ctx)
+// List provides a mock function with given fields: ctx, pagination
+func (_m *Storage) List(ctx context.Context, pagination domain.Pagination) ([]domain.Subscription, error) {
+	ret := _m.Called(ctx, pagination)
 
 	if len(ret) == 0 {
 		panic("no return value specified for List")
@@ -132,19 +130,19 @@ func (_m *Storage) List(ctx context.Context) ([]domain.Subscription, error) {
 
 	var r0 []domain.Subscription
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context) ([]domain.Subscription, error)); ok {
-		return rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, domain.Pagination) ([]domain.Subscription, error)); ok {
+		return rf(ctx, pagination)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context) []domain.Subscription); ok {
-		r0 = rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, domain.Pagination) []domain.Subscription); ok {
+		r0 = rf(ctx, pagination)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]domain.Subscription)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = rf(ctx)
+	if rf, ok := ret.Get(1).(func(context.Context, domain.Pagination) error); ok {
+		r1 = rf(ctx, pagination)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -163,6 +161,24 @@ func (_m *Storage) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.S
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, domain.Subscription) error); ok {
 		r0 = rf(ctx, subID, sub)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// UpdatePartialByID provides a mock function with given fields: ctx, subID, update
+func (_m *Storage) UpdatePartialByID(ctx context.Context, subID uuid.UUID, update domain.SubscriptionUpdate) error {
+	ret := _m.Called(ctx, subID, update)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdatePartialByID")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, uuid.UUID, domain.SubscriptionUpdate) error); ok {
+		r0 = rf(ctx, subID, update)
 	} else {
 		r0 = ret.Error(0)
 	}

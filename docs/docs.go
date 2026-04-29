@@ -37,7 +37,7 @@ const docTemplate = `{
         },
         "/subscriptions": {
             "get": {
-                "description": "Returns all subscriptions",
+                "description": "Returns subscriptions with limit/offset pagination",
                 "produces": [
                     "application/json"
                 ],
@@ -45,6 +45,25 @@ const docTemplate = `{
                     "subscriptions"
                 ],
                 "summary": "List subscriptions",
+                "parameters": [
+                    {
+                        "maximum": 1000,
+                        "minimum": 1,
+                        "type": "integer",
+                        "default": 100,
+                        "description": "Maximum number of records to return",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "minimum": 0,
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of records to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -53,6 +72,12 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/handler.SubscriptionResponse"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
                         }
                     },
                     "500": {
@@ -307,6 +332,60 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "patch": {
+                "description": "Partially updates an existing subscription by its ID. Omitted fields are not changed. Use end_date to set an end date or clear_end_date=true to clear it; end_date and clear_end_date=true cannot be used together. Dates use MM-YYYY format.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Partially update subscription",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Subscription ID (UUID)",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Partial subscription payload. Omitted fields are not changed.",
+                        "name": "subscription",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.SubscriptionUpdateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/handler.ErrorResponse"
+                        }
+                    }
+                }
             }
         }
     },
@@ -383,6 +462,37 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "string"
+                }
+            }
+        },
+        "handler.SubscriptionUpdateRequest": {
+            "type": "object",
+            "properties": {
+                "clear_end_date": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "end_date": {
+                    "type": "string",
+                    "example": "09-2025"
+                },
+                "price": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "example": 500
+                },
+                "service_name": {
+                    "type": "string",
+                    "example": "Yandex Plus"
+                },
+                "start_date": {
+                    "type": "string",
+                    "example": "07-2025"
+                },
+                "user_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "60601fee-2bf1-4721-ae6f-7636e79a0cba"
                 }
             }
         },

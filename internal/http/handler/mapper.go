@@ -28,10 +28,21 @@ func mapSubscriptionRequestError(err error) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "month must be between 1 and 12")
 	case errors.Is(err, errYearOutOfRange):
 		return echo.NewHTTPError(http.StatusBadRequest, "year must be greater than zero")
-	case errors.Is(err, errEndDateBeforeStart):
+	case errors.Is(err, domain.ErrEndDateBeforeStart):
 		return echo.NewHTTPError(http.StatusBadRequest, "end_date must not be before start_date")
 	default:
 		return echo.NewHTTPError(http.StatusBadRequest, errInvalidRequestBody)
+	}
+}
+
+func mapSubscriptionUpdateRequestError(err error) error {
+	switch {
+	case errors.Is(err, domain.ErrUpdateEmpty):
+		return echo.NewHTTPError(http.StatusBadRequest, "update payload must contain at least one field")
+	case errors.Is(err, errEndDateUpdateConflict):
+		return echo.NewHTTPError(http.StatusBadRequest, "end_date and clear_end_date=true cannot be used together")
+	default:
+		return mapSubscriptionRequestError(err)
 	}
 }
 
@@ -78,10 +89,38 @@ func mapTotalQueryError(err error) error {
 	case errors.Is(err, errYearOutOfRange):
 		return echo.NewHTTPError(http.StatusBadRequest, "year must be greater than zero")
 
-	case errors.Is(err, errEndDateBeforeStart):
+	case errors.Is(err, domain.ErrEndDateBeforeStart):
 		return echo.NewHTTPError(http.StatusBadRequest, "to must not be before from")
 
 	default:
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid query parameters")
+	}
+}
+
+func mapPaginationQueryError(err error) error {
+	switch {
+	case errors.Is(err, errLimitEmpty):
+		return echo.NewHTTPError(http.StatusBadRequest, "limit must not be empty")
+
+	case errors.Is(err, errLimitMultipleValues):
+		return echo.NewHTTPError(http.StatusBadRequest, "limit must be specified once")
+
+	case errors.Is(err, errLimitInvalid):
+		return echo.NewHTTPError(http.StatusBadRequest, "limit must be a positive integer")
+
+	case errors.Is(err, errLimitTooLarge):
+		return echo.NewHTTPError(http.StatusBadRequest, "limit must be less than or equal to 1000")
+
+	case errors.Is(err, errOffsetEmpty):
+		return echo.NewHTTPError(http.StatusBadRequest, "offset must not be empty")
+
+	case errors.Is(err, errOffsetMultipleValues):
+		return echo.NewHTTPError(http.StatusBadRequest, "offset must be specified once")
+
+	case errors.Is(err, errOffsetInvalid):
+		return echo.NewHTTPError(http.StatusBadRequest, "offset must be a non-negative integer")
+
+	default:
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid pagination query parameters")
 	}
 }

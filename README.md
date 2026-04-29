@@ -79,9 +79,10 @@ make swagger
 ## Основные ручки
 
 - `POST /subscriptions` - создать подписку
-- `GET /subscriptions` - получить список подписок
+- `GET /subscriptions?limit=100&offset=0` - получить список подписок с пагинацией
 - `GET /subscriptions/{id}` - получить подписку по ID
 - `PUT /subscriptions/{id}` - обновить подписку по ID
+- `PATCH /subscriptions/{id}` - частично обновить подписку по ID
 - `DELETE /subscriptions/{id}` - удалить подписку по ID
 - `GET /subscriptions/total` - посчитать суммарную стоимость подписок за период
 - `GET /health` - healthcheck сервиса
@@ -94,6 +95,29 @@ make swagger
   "price": 400,
   "user_id": "60601fee-2bf1-4721-ae6f-7636e79a0cba",
   "start_date": "07-2025"
+}
+```
+
+Пример запроса списка подписок:
+
+```text
+GET /subscriptions?limit=100&offset=0
+```
+
+Пример частичного обновления подписки:
+
+```json
+{
+  "price": 500,
+  "end_date": "12-2025"
+}
+```
+
+Для очистки даты окончания:
+
+```json
+{
+  "clear_end_date": true
 }
 ```
 

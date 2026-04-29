@@ -9,9 +9,12 @@ import (
 	"github.com/gladinov/effective_mobile_test_assignment/internal/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+const subscriptionDatesCheckConstraint = "subscriptions_end_date_after_start_date_check"
 
 func (s *Storage) Create(ctx context.Context, sub domain.Subscription) (uuid.UUID, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
@@ -31,6 +34,9 @@ func (s *Storage) Create(ctx context.Context, sub domain.Subscription) (uuid.UUI
 
 	var newID uuid.UUID
 	if err := s.db.QueryRow(ctx, insertSQL, insertArgs...).Scan(&newID); err != nil {
+		if isConstraintViolation(err, subscriptionDatesCheckConstraint) {
+			return uuid.UUID{}, domain.ErrEndDateBeforeStart
+		}
 		return uuid.UUID{}, e.WrapIfErr("query row", err)
 	}
 
@@ -93,7 +99,40 @@ func (s *Storage) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Su
 	}
 	tag, err := s.db.Exec(ctx, updateSQL, updateArgs...)
 	if err != nil {
+		if isConstraintViolation(err, subscriptionDatesCheckConstraint) {
+			return domain.ErrEndDateBeforeStart
+		}
 		return e.WrapIfErr("execute update query", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return domain.ErrSubscriptionNotFound
+	}
+
+	return nil
+}
+
+func (s *Storage) UpdatePartialByID(ctx context.Context, subID uuid.UUID, update domain.SubscriptionUpdate) error {
+	if !update.HasChanges() {
+		return domain.ErrUpdateEmpty
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
+	defer cancel()
+
+	query := psql.Update(subscriptionTable)
+	query = applySubscriptionUpdate(update, query)
+	query = query.Where(sq.Eq{colID: subID})
+
+	updateSQL, updateArgs, err := query.ToSql()
+	if err != nil {
+		return e.WrapIfErr("build partial update query", err)
+	}
+	tag, err := s.db.Exec(ctx, updateSQL, updateArgs...)
+	if err != nil {
+		if isConstraintViolation(err, subscriptionDatesCheckConstraint) {
+			return domain.ErrEndDateBeforeStart
+		}
+		return e.WrapIfErr("execute partial update query", err)
 	}
 	if tag.RowsAffected() == 0 {
 		return domain.ErrSubscriptionNotFound
@@ -125,10 +164,10 @@ func (s *Storage) DeleteByID(ctx context.Context, subID uuid.UUID) error {
 	return nil
 }
 
-func (s *Storage) List(ctx context.Context) ([]domain.Subscription, error) {
+func (s *Storage) List(ctx context.Context, pagination domain.Pagination) ([]domain.Subscription, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
 	defer cancel()
-	subRows, err := s.listRows(ctx)
+	subRows, err := s.listRows(ctx, pagination)
 	if err != nil {
 		return nil, err
 	}
@@ -139,10 +178,13 @@ func (s *Storage) List(ctx context.Context) ([]domain.Subscription, error) {
 	return res, nil
 }
 
-func (s *Storage) listRows(ctx context.Context) ([]subscriptionRow, error) {
+func (s *Storage) listRows(ctx context.Context, pagination domain.Pagination) ([]subscriptionRow, error) {
 	listSQL, listArgs, err := psql.
 		Select(colID, colServiceName, colPrice, colUserID, colStartDate, colEndDate).
 		From(subscriptionTable).
+		OrderBy(colID).
+		Limit(pagination.Limit).
+		Offset(pagination.Offset).
 		ToSql()
 	if err != nil {
 		return nil, e.WrapIfErr("build select query", err)
@@ -162,81 +204,26 @@ func (s *Storage) listRows(ctx context.Context) ([]subscriptionRow, error) {
 	return subs, nil
 }
 
-func (s *Storage) GetFilteredSubs(ctx context.Context, filter domain.FilterTotal) ([]domain.Subscription, error) {
+func (s *Storage) GetTotal(ctx context.Context, filter domain.FilterTotal, currentMonth domain.YearMonth) (int64, error) {
 	ctx, cancel := context.WithTimeout(ctx, s.dbQueryTimeout)
 	defer cancel()
-	subRows, err := s.getFiltredSubsRows(ctx, filter)
+
+	totalSQL, totalSQLArgs, err := totalPaidQuery(filter, currentMonth)
 	if err != nil {
-		return nil, err
+		return 0, e.WrapIfErr("build total query", err)
 	}
-	res := make([]domain.Subscription, 0, len(subRows))
-	for i := range subRows {
-		res = append(res, subRows[i].ToDomain())
+
+	var total int64
+	if err := s.db.QueryRow(ctx, totalSQL, totalSQLArgs...).Scan(&total); err != nil {
+		return 0, e.WrapIfErr("query total", err)
 	}
-	return res, nil
+
+	return total, nil
 }
 
-func (s *Storage) getFiltredSubsRows(ctx context.Context, filter domain.FilterTotal) ([]subscriptionRow, error) {
-	query := psql.
-		Select(colID, colServiceName, colPrice, colUserID, colStartDate, colEndDate).
-		From(subscriptionTable)
-
-	queryWithFilters := applyFilters(filter, query)
-
-	totalSQL, totalArgs, err := queryWithFilters.ToSql()
-	if err != nil {
-		return nil, e.WrapIfErr("build select query", err)
-	}
-	rows, err := s.db.Query(ctx, totalSQL, totalArgs...)
-	if err != nil {
-		return nil, e.WrapIfErr("execute select query", err)
-	}
-	defer rows.Close()
-
-	subs, err := pgx.CollectRows(rows, pgx.RowToStructByName[subscriptionRow])
-	if err != nil {
-		return nil, e.WrapIfErr("collect rows", err)
-	}
-
-	return subs, nil
-}
-
-func applyFilters(filter domain.FilterTotal, query sq.SelectBuilder) sq.SelectBuilder {
-	if filter.UserID != nil {
-		query = query.
-			Where(sq.Eq{colUserID: *filter.UserID})
-	}
-
-	if filter.ServiceName != nil {
-		query = query.
-			Where(sq.Eq{colServiceName: *filter.ServiceName})
-	}
-
-	switch {
-	case filter.From != nil && filter.To != nil:
-		from := mapYearMonthToSql(*filter.From)
-		to := mapYearMonthToSql(*filter.To)
-		query = query.Where(
-			sq.LtOrEq{colStartDate: to},
-		).Where(
-			sq.Or{
-				sq.Expr(colEndDate + " IS NULL"),
-				sq.GtOrEq{colEndDate: from},
-			},
-		)
-	case filter.To != nil:
-		to := mapYearMonthToSql(*filter.To)
-		query = query.Where(
-			sq.LtOrEq{colStartDate: to},
-		)
-	case filter.From != nil:
-		from := mapYearMonthToSql(*filter.From)
-		query = query.Where(
-			sq.Or{
-				sq.Expr(colEndDate + " IS NULL"),
-				sq.GtOrEq{colEndDate: from},
-			},
-		)
-	}
-	return query
+func isConstraintViolation(err error, constraintName string) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) &&
+		pgErr.Code == "23514" &&
+		pgErr.ConstraintName == constraintName
 }

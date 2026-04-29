@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gladinov/effective_mobile_test_assignment/internal/domain"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/require"
@@ -40,7 +41,7 @@ func TestGetQueryForTotal(t *testing.T) {
 		c := echo.New().NewContext(req, httptest.NewRecorder())
 
 		_, err := getQueryForTotal(c)
-		require.ErrorIs(t, err, errEndDateBeforeStart)
+		require.ErrorIs(t, err, domain.ErrEndDateBeforeStart)
 	})
 
 	t.Run("returns error for invalid user id", func(t *testing.T) {
@@ -51,6 +52,54 @@ func TestGetQueryForTotal(t *testing.T) {
 
 		_, err := getQueryForTotal(c)
 		require.ErrorIs(t, err, errInvalidUUID)
+	})
+}
+
+func TestGetPaginationQuery(t *testing.T) {
+	t.Parallel()
+
+	t.Run("returns defaults when query params are absent", func(t *testing.T) {
+		t.Parallel()
+
+		req := httptest.NewRequest("GET", "/subscriptions", nil)
+		c := echo.New().NewContext(req, httptest.NewRecorder())
+
+		got, err := getPaginationQuery(c)
+		require.NoError(t, err)
+		require.Equal(t, defaultLimit, got.Limit)
+		require.Equal(t, defaultOffset, got.Offset)
+	})
+
+	t.Run("parses limit and offset", func(t *testing.T) {
+		t.Parallel()
+
+		req := httptest.NewRequest("GET", "/subscriptions?limit=25&offset=50", nil)
+		c := echo.New().NewContext(req, httptest.NewRecorder())
+
+		got, err := getPaginationQuery(c)
+		require.NoError(t, err)
+		require.Equal(t, uint64(25), got.Limit)
+		require.Equal(t, uint64(50), got.Offset)
+	})
+
+	t.Run("returns error when limit is zero", func(t *testing.T) {
+		t.Parallel()
+
+		req := httptest.NewRequest("GET", "/subscriptions?limit=0", nil)
+		c := echo.New().NewContext(req, httptest.NewRecorder())
+
+		_, err := getPaginationQuery(c)
+		require.ErrorIs(t, err, errLimitInvalid)
+	})
+
+	t.Run("returns error when offset is negative", func(t *testing.T) {
+		t.Parallel()
+
+		req := httptest.NewRequest("GET", "/subscriptions?offset=-1", nil)
+		c := echo.New().NewContext(req, httptest.NewRecorder())
+
+		_, err := getPaginationQuery(c)
+		require.ErrorIs(t, err, errOffsetInvalid)
 	})
 }
 

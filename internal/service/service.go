@@ -27,9 +27,10 @@ type Storage interface {
 	Create(ctx context.Context, sub domain.Subscription) (uuid.UUID, error)
 	GetByID(ctx context.Context, subID uuid.UUID) (domain.Subscription, error)
 	UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Subscription) error
+	UpdatePartialByID(ctx context.Context, subID uuid.UUID, update domain.SubscriptionUpdate) error
 	DeleteByID(ctx context.Context, subID uuid.UUID) error
-	List(ctx context.Context) ([]domain.Subscription, error)
-	GetFilteredSubs(ctx context.Context, filter domain.FilterTotal) ([]domain.Subscription, error)
+	List(ctx context.Context, pagination domain.Pagination) ([]domain.Subscription, error)
+	GetTotal(ctx context.Context, filter domain.FilterTotal, currentMonth domain.YearMonth) (int64, error)
 }
 
 func (s *Service) Create(ctx context.Context, sub domain.Subscription) (uuid.UUID, error) {
@@ -47,8 +48,8 @@ func (s *Service) GetByID(ctx context.Context, subID uuid.UUID) (domain.Subscrip
 	return sub, nil
 }
 
-func (s *Service) List(ctx context.Context) ([]domain.Subscription, error) {
-	return s.storage.List(ctx)
+func (s *Service) List(ctx context.Context, pagination domain.Pagination) ([]domain.Subscription, error) {
+	return s.storage.List(ctx, pagination)
 }
 
 func (s *Service) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Subscription) error {
@@ -59,6 +60,63 @@ func (s *Service) UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Su
 		}
 		return e.WrapIfErr("update sub by id in storage", err)
 	}
+	return nil
+}
+
+func (s *Service) UpdatePartialByID(ctx context.Context, subID uuid.UUID, update domain.SubscriptionUpdate) error {
+	if !update.HasChanges() {
+		return domain.ErrUpdateEmpty
+	}
+
+	if err := s.validatePartialUpdateDates(ctx, subID, update); err != nil {
+		return err
+	}
+
+	err := s.storage.UpdatePartialByID(ctx, subID, update)
+	if err != nil {
+		if errors.Is(err, domain.ErrSubscriptionNotFound) {
+			return domain.ErrSubscriptionNotFound
+		}
+		return e.WrapIfErr("update partial sub by id in storage", err)
+	}
+	return nil
+}
+
+func (s *Service) validatePartialUpdateDates(ctx context.Context, subID uuid.UUID, update domain.SubscriptionUpdate) error {
+	if update.EndDate.Clear {
+		return nil
+	}
+
+	if update.StartDate != nil && update.EndDate.Value != nil {
+		if update.EndDate.Value.CountOfMonth() < update.StartDate.CountOfMonth() {
+			return domain.ErrEndDateBeforeStart
+		}
+		return nil
+	}
+
+	if update.StartDate == nil && update.EndDate.Value == nil {
+		return nil
+	}
+
+	sub, err := s.GetByID(ctx, subID)
+	if err != nil {
+		return err
+	}
+
+	startDate := sub.StartDate
+	if update.StartDate != nil {
+		startDate = *update.StartDate
+	}
+
+	endDate := sub.EndDate
+	if update.EndDate.Value != nil {
+		endDate = update.EndDate.Value
+	}
+
+	if endDate != nil && endDate.CountOfMonth() < startDate.CountOfMonth() {
+		return domain.ErrEndDateBeforeStart
+	}
+
 	return nil
 }
 
@@ -73,14 +131,17 @@ func (s *Service) DeleteByID(ctx context.Context, subID uuid.UUID) error {
 	return nil
 }
 
-func (s *Service) GetTotal(ctx context.Context, filter domain.FilterTotal) (int, error) {
-	subs, err := s.storage.GetFilteredSubs(ctx, filter)
+func (s *Service) GetTotal(ctx context.Context, filter domain.FilterTotal) (int64, error) {
+	total, err := s.storage.GetTotal(ctx, filter, todayInYearMonth(s.now()))
 	if err != nil {
-		return 0, e.WrapIfErr("get filtered subscriptions from storage", err)
+		return 0, e.WrapIfErr("get total from storage", err)
 	}
-	var sum int
-	for i := range subs {
-		sum += pricePaidInPeriod(s.now, filter, subs[i])
+	return total, nil
+}
+
+func todayInYearMonth(t time.Time) domain.YearMonth {
+	return domain.YearMonth{
+		Year:  t.Year(),
+		Month: t.Month(),
 	}
-	return sum, nil
 }

@@ -1,12 +1,88 @@
 package handler
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/gladinov/e"
 	"github.com/gladinov/effective_mobile_test_assignment/internal/domain"
 	"github.com/labstack/echo/v4"
 )
+
+func getPaginationQuery(c echo.Context) (domain.Pagination, error) {
+	limitValue, err := limitFromQueryParam(c)
+	if err != nil {
+		return domain.Pagination{}, e.WrapIfErr("parse limit query param", err)
+	}
+
+	offsetValue, err := offsetFromQueryParam(c)
+	if err != nil {
+		return domain.Pagination{}, e.WrapIfErr("parse offset query param", err)
+	}
+
+	return domain.Pagination{
+		Limit:  limitValue,
+		Offset: offsetValue,
+	}, nil
+}
+
+func limitFromQueryParam(c echo.Context) (uint64, error) {
+	values, exists := c.QueryParams()[limit]
+	if !exists {
+		return defaultLimit, nil
+	}
+
+	if len(values) > 1 {
+		return 0, errLimitMultipleValues
+	}
+
+	if len(values) == 0 {
+		return 0, errLimitEmpty
+	}
+
+	value := strings.TrimSpace(values[0])
+	if value == "" {
+		return 0, errLimitEmpty
+	}
+
+	parsedLimit, err := strconv.ParseUint(value, 10, 64)
+	if err != nil || parsedLimit == 0 {
+		return 0, errLimitInvalid
+	}
+
+	if parsedLimit > maxLimit {
+		return 0, errLimitTooLarge
+	}
+
+	return parsedLimit, nil
+}
+
+func offsetFromQueryParam(c echo.Context) (uint64, error) {
+	values, exists := c.QueryParams()[offset]
+	if !exists {
+		return defaultOffset, nil
+	}
+
+	if len(values) > 1 {
+		return 0, errOffsetMultipleValues
+	}
+
+	if len(values) == 0 {
+		return 0, errOffsetEmpty
+	}
+
+	value := strings.TrimSpace(values[0])
+	if value == "" {
+		return 0, errOffsetEmpty
+	}
+
+	parsedOffset, err := strconv.ParseUint(value, 10, 64)
+	if err != nil {
+		return 0, errOffsetInvalid
+	}
+
+	return parsedOffset, nil
+}
 
 func getQueryForTotal(c echo.Context) (domain.FilterTotal, error) {
 	var filter filterTotal
@@ -42,7 +118,7 @@ func getQueryForTotal(c echo.Context) (domain.FilterTotal, error) {
 
 	if domainFilter.From != nil && domainFilter.To != nil &&
 		domainFilter.To.CountOfMonth() < domainFilter.From.CountOfMonth() {
-		return domain.FilterTotal{}, errEndDateBeforeStart
+		return domain.FilterTotal{}, domain.ErrEndDateBeforeStart
 	}
 
 	return domainFilter, nil

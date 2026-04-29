@@ -21,9 +21,10 @@ type Service interface {
 	Create(ctx context.Context, sub domain.Subscription) (uuid.UUID, error)
 	GetByID(ctx context.Context, subID uuid.UUID) (domain.Subscription, error)
 	UpdateByID(ctx context.Context, subID uuid.UUID, sub domain.Subscription) error
+	UpdatePartialByID(ctx context.Context, subID uuid.UUID, update domain.SubscriptionUpdate) error
 	DeleteByID(ctx context.Context, subID uuid.UUID) error
-	List(ctx context.Context) ([]domain.Subscription, error)
-	GetTotal(ctx context.Context, filter domain.FilterTotal) (int, error)
+	List(ctx context.Context, pagination domain.Pagination) ([]domain.Subscription, error)
+	GetTotal(ctx context.Context, filter domain.FilterTotal) (int64, error)
 }
 
 type handler struct {
@@ -48,6 +49,7 @@ func (h *handler) RegisterRoutes(router *echo.Echo) {
 	router.POST("/subscriptions", h.Create)
 	router.GET("/subscriptions/:id", h.Get)
 	router.PUT("/subscriptions/:id", h.Update)
+	router.PATCH("/subscriptions/:id", h.UpdatePartial)
 	router.DELETE("/subscriptions/:id", h.Delete)
 	router.GET("/subscriptions", h.List)
 	router.GET("/subscriptions/total", h.Total)
@@ -197,6 +199,61 @@ func (h *handler) Update(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
+// UpdatePartial partially updates a subscription by ID.
+// @Summary Partially update subscription
+// @Description Partially updates an existing subscription by its ID. Omitted fields are not changed. Use end_date to set an end date or clear_end_date=true to clear it; end_date and clear_end_date=true cannot be used together. Dates use MM-YYYY format.
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param id path string true "Subscription ID (UUID)"
+// @Param subscription body SubscriptionUpdateRequest true "Partial subscription payload. Omitted fields are not changed."
+// @Success 204
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /subscriptions/{id} [patch]
+func (h *handler) UpdatePartial(c echo.Context) error {
+	ctx := c.Request().Context()
+	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
+	defer cancel()
+
+	id := c.Param("id")
+	subID, err := uuid.Parse(id)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, errInvalidUUID)
+	}
+
+	var subsReq SubscriptionUpdateRequest
+
+	err = c.Bind(&subsReq)
+	if err != nil {
+		return mapSubscriptionUpdateRequestError(err)
+	}
+	domainUpdate, err := subsReq.ToDomain()
+	if err != nil {
+		return mapSubscriptionUpdateRequestError(err)
+	}
+
+	err = h.service.UpdatePartialByID(ctx, subID, domainUpdate)
+	if err != nil {
+		if errors.Is(err, domain.ErrEndDateBeforeStart) {
+			return mapSubscriptionUpdateRequestError(err)
+		}
+
+		if errors.Is(err, domain.ErrSubscriptionNotFound) {
+			return echo.NewHTTPError(http.StatusNotFound, errNotFound)
+		}
+
+		h.logger.Error("partial update subscription",
+			slog.Any("error", err),
+			slog.String("subscription_id", subID.String()),
+			slog.Any("subscription_update", domainUpdate),
+		)
+		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
+	}
+	return c.NoContent(http.StatusNoContent)
+}
+
 // Delete removes a subscription by ID.
 // @Summary Delete subscription
 // @Description Deletes a subscription by its ID
@@ -235,12 +292,15 @@ func (h *handler) Delete(c echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
-// List returns all subscriptions.
+// List returns subscriptions.
 // @Summary List subscriptions
-// @Description Returns all subscriptions
+// @Description Returns subscriptions with limit/offset pagination
 // @Tags subscriptions
 // @Produce json
+// @Param limit query int false "Maximum number of records to return" default(100) minimum(1) maximum(1000)
+// @Param offset query int false "Number of records to skip" default(0) minimum(0)
 // @Success 200 {array} SubscriptionResponse
+// @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
 // @Router /subscriptions [get]
 func (h *handler) List(c echo.Context) error {
@@ -248,10 +308,16 @@ func (h *handler) List(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
 	defer cancel()
 
-	domainSubs, err := h.service.List(ctx)
+	pagination, err := getPaginationQuery(c)
+	if err != nil {
+		return mapPaginationQueryError(err)
+	}
+
+	domainSubs, err := h.service.List(ctx, pagination)
 	if err != nil {
 		h.logger.Error("list subscriptions",
 			slog.Any("error", err),
+			slog.Any("pagination", pagination),
 		)
 		return echo.NewHTTPError(http.StatusInternalServerError, errGetData)
 	}
