@@ -92,29 +92,27 @@ func (_m *Storage) GetByID(ctx context.Context, subID uuid.UUID) (domain.Subscri
 	return r0, r1
 }
 
-// GetFilteredSubs provides a mock function with given fields: ctx, filter
-func (_m *Storage) GetFilteredSubs(ctx context.Context, filter domain.FilterTotal) ([]domain.Subscription, error) {
-	ret := _m.Called(ctx, filter)
+// GetTotal provides a mock function with given fields: ctx, filter, currentMonth
+func (_m *Storage) GetTotal(ctx context.Context, filter domain.FilterTotal, currentMonth domain.YearMonth) (int64, error) {
+	ret := _m.Called(ctx, filter, currentMonth)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetFilteredSubs")
+		panic("no return value specified for GetTotal")
 	}
 
-	var r0 []domain.Subscription
+	var r0 int64
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, domain.FilterTotal) ([]domain.Subscription, error)); ok {
-		return rf(ctx, filter)
+	if rf, ok := ret.Get(0).(func(context.Context, domain.FilterTotal, domain.YearMonth) (int64, error)); ok {
+		return rf(ctx, filter, currentMonth)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, domain.FilterTotal) []domain.Subscription); ok {
-		r0 = rf(ctx, filter)
+	if rf, ok := ret.Get(0).(func(context.Context, domain.FilterTotal, domain.YearMonth) int64); ok {
+		r0 = rf(ctx, filter, currentMonth)
 	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]domain.Subscription)
-		}
+		r0 = ret.Get(0).(int64)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, domain.FilterTotal) error); ok {
-		r1 = rf(ctx, filter)
+	if rf, ok := ret.Get(1).(func(context.Context, domain.FilterTotal, domain.YearMonth) error); ok {
+		r1 = rf(ctx, filter, currentMonth)
 	} else {
 		r1 = ret.Error(1)
 	}

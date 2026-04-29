@@ -16,31 +16,18 @@ import (
 func TestServiceGetTotal(t *testing.T) {
 	t.Parallel()
 
-	july2025 := domain.YearMonth{Year: 2025, Month: time.July}
 	august2025 := domain.YearMonth{Year: 2025, Month: time.August}
-	september2025 := domain.YearMonth{Year: 2025, Month: time.September}
 	october2025 := domain.YearMonth{Year: 2025, Month: time.October}
-	november2025 := domain.YearMonth{Year: 2025, Month: time.November}
 
 	tests := []struct {
 		name      string
 		now       time.Time
 		filter    domain.FilterTotal
-		subs      []domain.Subscription
-		wantTotal int
+		wantTotal int64
 	}{
 		{
-			name: "counts inclusive months without filters",
-			now:  time.Date(2025, time.December, 1, 0, 0, 0, 0, time.UTC),
-			subs: []domain.Subscription{
-				{
-					ServiceName: "Yandex Plus",
-					Price:       400,
-					UserID:      uuid.MustParse("60601fee-2bf1-4721-ae6f-7636e79a0cba"),
-					StartDate:   july2025,
-					EndDate:     &september2025,
-				},
-			},
+			name:      "counts inclusive months without filters",
+			now:       time.Date(2025, time.December, 1, 0, 0, 0, 0, time.UTC),
 			wantTotal: 1200,
 		},
 		{
@@ -48,15 +35,6 @@ func TestServiceGetTotal(t *testing.T) {
 			now:  time.Date(2025, time.December, 1, 0, 0, 0, 0, time.UTC),
 			filter: domain.FilterTotal{
 				From: &august2025,
-			},
-			subs: []domain.Subscription{
-				{
-					ServiceName: "Yandex Plus",
-					Price:       400,
-					UserID:      uuid.MustParse("60601fee-2bf1-4721-ae6f-7636e79a0cba"),
-					StartDate:   july2025,
-					EndDate:     &september2025,
-				},
 			},
 			wantTotal: 800,
 		},
@@ -66,29 +44,11 @@ func TestServiceGetTotal(t *testing.T) {
 			filter: domain.FilterTotal{
 				To: &august2025,
 			},
-			subs: []domain.Subscription{
-				{
-					ServiceName: "Yandex Plus",
-					Price:       400,
-					UserID:      uuid.MustParse("60601fee-2bf1-4721-ae6f-7636e79a0cba"),
-					StartDate:   july2025,
-					EndDate:     &september2025,
-				},
-			},
 			wantTotal: 800,
 		},
 		{
-			name: "uses now for open ended subscription when filter to is absent",
-			now:  time.Date(2025, time.September, 15, 0, 0, 0, 0, time.UTC),
-			subs: []domain.Subscription{
-				{
-					ServiceName: "Netflix",
-					Price:       1000,
-					UserID:      uuid.MustParse("b7582d0c-aad8-40d2-8362-265a18173964"),
-					StartDate:   july2025,
-					EndDate:     nil,
-				},
-			},
+			name:      "uses now for open ended subscription when filter to is absent",
+			now:       time.Date(2025, time.September, 15, 0, 0, 0, 0, time.UTC),
 			wantTotal: 3000,
 		},
 		{
@@ -98,36 +58,11 @@ func TestServiceGetTotal(t *testing.T) {
 				From: &august2025,
 				To:   &october2025,
 			},
-			subs: []domain.Subscription{
-				{
-					ServiceName: "Netflix",
-					Price:       1000,
-					UserID:      uuid.MustParse("b7582d0c-aad8-40d2-8362-265a18173964"),
-					StartDate:   july2025,
-					EndDate:     nil,
-				},
-			},
 			wantTotal: 3000,
 		},
 		{
-			name: "sums several subscriptions",
-			now:  time.Date(2025, time.December, 1, 0, 0, 0, 0, time.UTC),
-			subs: []domain.Subscription{
-				{
-					ServiceName: "Yandex Plus",
-					Price:       400,
-					UserID:      uuid.MustParse("60601fee-2bf1-4721-ae6f-7636e79a0cba"),
-					StartDate:   july2025,
-					EndDate:     &september2025,
-				},
-				{
-					ServiceName: "Spotify",
-					Price:       300,
-					UserID:      uuid.MustParse("60601fee-2bf1-4721-ae6f-7636e79a0cba"),
-					StartDate:   october2025,
-					EndDate:     &november2025,
-				},
-			},
+			name:      "sums several subscriptions",
+			now:       time.Date(2025, time.December, 1, 0, 0, 0, 0, time.UTC),
 			wantTotal: 1800,
 		},
 	}
@@ -137,7 +72,8 @@ func TestServiceGetTotal(t *testing.T) {
 			t.Parallel()
 
 			storage := mocks.NewStorage(t)
-			storage.On("GetFilteredSubs", mock.Anything, tt.filter).Return(tt.subs, nil).Once()
+			currentMonth := domain.YearMonth{Year: tt.now.Year(), Month: tt.now.Month()}
+			storage.On("GetTotal", mock.Anything, tt.filter, currentMonth).Return(tt.wantTotal, nil).Once()
 
 			svc := NewService(storage)
 			svc.now = func() time.Time { return tt.now }
@@ -154,14 +90,16 @@ func TestServiceGetTotal_StorageError(t *testing.T) {
 
 	wantErr := errors.New("storage failed")
 	storage := mocks.NewStorage(t)
-	storage.On("GetFilteredSubs", mock.Anything, domain.FilterTotal{}).Return(([]domain.Subscription)(nil), wantErr).Once()
+	currentMonth := domain.YearMonth{Year: 2025, Month: time.December}
+	storage.On("GetTotal", mock.Anything, domain.FilterTotal{}, currentMonth).Return(int64(0), wantErr).Once()
 
 	svc := NewService(storage)
+	svc.now = func() time.Time { return time.Date(2025, time.December, 1, 0, 0, 0, 0, time.UTC) }
 
 	_, err := svc.GetTotal(context.Background(), domain.FilterTotal{})
 	require.Error(t, err)
 	require.ErrorIs(t, err, wantErr)
-	require.Contains(t, err.Error(), "get filtered subscriptions from storage")
+	require.Contains(t, err.Error(), "get total from storage")
 }
 
 func TestServiceGetByID(t *testing.T) {

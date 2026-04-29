@@ -629,7 +629,7 @@ func TestHandlerTotal(t *testing.T) {
 			From:        yearMonthPtrHandler(2025, time.July),
 			To:          yearMonthPtrHandler(2025, time.September),
 		}
-		service.On("GetTotal", mock.Anything, filter).Return(1200, nil).Once()
+		service.On("GetTotal", mock.Anything, filter).Return(int64(1200), nil).Once()
 
 		req := httptest.NewRequest(http.MethodGet, "/subscriptions/total?user_id="+userID.String()+"&service_name="+url.QueryEscape("Yandex Plus")+"&from=07-2025&to=09-2025", nil)
 		rec := httptest.NewRecorder()
@@ -670,7 +670,7 @@ func TestHandlerTotal(t *testing.T) {
 			From:        yearMonthPtrHandler(2025, time.July),
 			To:          yearMonthPtrHandler(2025, time.September),
 		}
-		service.On("GetTotal", mock.Anything, filter).Return(0, assertErr()).Once()
+		service.On("GetTotal", mock.Anything, filter).Return(int64(0), assertErr()).Once()
 
 		req := httptest.NewRequest(http.MethodGet, "/subscriptions/total?user_id="+userID.String()+"&service_name="+url.QueryEscape("Yandex Plus")+"&from=07-2025&to=09-2025", nil)
 		rec := httptest.NewRecorder()

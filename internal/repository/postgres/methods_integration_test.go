@@ -22,6 +22,7 @@ import (
 const (
 	createSubscriptionsMigrationPath = "../../../deployments/migrations/postgreSQL/0001_create_subscriptions_table.up.sql"
 	addDatesCheckMigrationPath       = "../../../deployments/migrations/postgreSQL/0002_add_subscription_dates_check.up.sql"
+	addFilterIndexesMigrationPath    = "../../../deployments/migrations/postgreSQL/0003_add_subscription_filter_indexes.up.sql"
 )
 
 func TestStorageCreateIntegration(t *testing.T) {
@@ -409,7 +410,7 @@ func TestStorageListIntegration(t *testing.T) {
 	require.Len(t, got, 1)
 }
 
-func TestStorageGetFilteredSubsIntegration(t *testing.T) {
+func TestStorageGetTotalIntegration(t *testing.T) {
 	t.Parallel()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
@@ -419,55 +420,69 @@ func TestStorageGetFilteredSubsIntegration(t *testing.T) {
 	storage := NewStorage(pool, 5*time.Second)
 
 	targetUserID := uuid.MustParse("60601fee-2bf1-4721-ae6f-7636e79a0cba")
-	match := domain.Subscription{
-		ID:          uuid.MustParse("2ccb4d14-7ad9-4a64-bf8c-05bff5a79113"),
-		ServiceName: "Yandex Plus",
-		Price:       400,
-		UserID:      targetUserID,
-		StartDate:   domain.YearMonth{Year: 2025, Month: time.July},
-		EndDate:     yearMonthPtr(2025, time.September),
-	}
-	openEndedMatch := domain.Subscription{
-		ID:          uuid.MustParse("9880b581-bf5e-4776-b15d-9f4949dbb8f4"),
-		ServiceName: "Yandex Plus",
-		Price:       500,
-		UserID:      targetUserID,
-		StartDate:   domain.YearMonth{Year: 2025, Month: time.August},
-		EndDate:     nil,
-	}
-	otherService := domain.Subscription{
-		ID:          uuid.MustParse("a2164efb-ae53-4565-ad95-e37d20e9f369"),
-		ServiceName: "Netflix",
-		Price:       1000,
-		UserID:      targetUserID,
-		StartDate:   domain.YearMonth{Year: 2025, Month: time.July},
-		EndDate:     yearMonthPtr(2025, time.December),
-	}
-	otherUser := domain.Subscription{
-		ID:          uuid.MustParse("6b5ddb63-6314-440c-8ebe-6f779f3307b3"),
-		ServiceName: "Yandex Plus",
-		Price:       700,
-		UserID:      uuid.MustParse("b7582d0c-aad8-40d2-8362-265a18173964"),
-		StartDate:   domain.YearMonth{Year: 2025, Month: time.July},
-		EndDate:     yearMonthPtr(2025, time.September),
+	subs := []domain.Subscription{
+		{
+			ID:          uuid.MustParse("f52bb13a-dc51-4796-a826-a71aa1d1ecbf"),
+			ServiceName: "Yandex Plus",
+			Price:       400,
+			UserID:      targetUserID,
+			StartDate:   domain.YearMonth{Year: 2025, Month: time.July},
+			EndDate:     yearMonthPtr(2025, time.September),
+		},
+		{
+			ID:          uuid.MustParse("eb88d35d-178e-4c21-946d-dfd8178a2c5a"),
+			ServiceName: "Yandex Plus",
+			Price:       500,
+			UserID:      targetUserID,
+			StartDate:   domain.YearMonth{Year: 2025, Month: time.August},
+			EndDate:     nil,
+		},
+		{
+			ID:          uuid.MustParse("cc173e3d-b0d6-4cd8-bf77-f306c5074f72"),
+			ServiceName: "Netflix",
+			Price:       1000,
+			UserID:      targetUserID,
+			StartDate:   domain.YearMonth{Year: 2025, Month: time.July},
+			EndDate:     yearMonthPtr(2025, time.December),
+		},
+		{
+			ID:          uuid.MustParse("e84acec2-9a4e-40e9-b424-88417efa56ce"),
+			ServiceName: "Yandex Plus",
+			Price:       700,
+			UserID:      uuid.MustParse("b7582d0c-aad8-40d2-8362-265a18173964"),
+			StartDate:   domain.YearMonth{Year: 2025, Month: time.July},
+			EndDate:     yearMonthPtr(2025, time.September),
+		},
+		{
+			ID:          uuid.MustParse("b7657f86-c71a-4631-b5f6-4f87f20bcbd9"),
+			ServiceName: "Future Service",
+			Price:       999,
+			UserID:      targetUserID,
+			StartDate:   domain.YearMonth{Year: 2026, Month: time.January},
+			EndDate:     nil,
+		},
 	}
 
-	seedSubscription(t, ctx, pool, match)
-	seedSubscription(t, ctx, pool, openEndedMatch)
-	seedSubscription(t, ctx, pool, otherService)
-	seedSubscription(t, ctx, pool, otherUser)
+	for i := range subs {
+		seedSubscription(t, ctx, pool, subs[i])
+	}
 
 	from := domain.YearMonth{Year: 2025, Month: time.August}
 	to := domain.YearMonth{Year: 2025, Month: time.September}
+	currentMonth := domain.YearMonth{Year: 2025, Month: time.October}
 
-	got, err := storage.GetFilteredSubs(ctx, domain.FilterTotal{
+	got, err := storage.GetTotal(ctx, domain.FilterTotal{
 		UserID:      &targetUserID,
 		ServiceName: stringPtr("Yandex Plus"),
 		From:        &from,
 		To:          &to,
-	})
+	}, currentMonth)
 	require.NoError(t, err)
-	require.ElementsMatch(t, []domain.Subscription{match, openEndedMatch}, got)
+	require.Equal(t, 1800, got)
+
+	got, err = storage.GetTotal(ctx, domain.FilterTotal{}, currentMonth)
+	require.NoError(t, err)
+	require.Equal(t, 10800, got)
 }
 
 func newTestPostgresPool(ctx context.Context, t *testing.T) *pgxpool.Pool {
@@ -504,6 +519,8 @@ func newTestPostgresPool(ctx context.Context, t *testing.T) *pgxpool.Pool {
 	_, err = pool.Exec(ctx, mustReadMigration(t, createSubscriptionsMigrationPath))
 	require.NoError(t, err)
 	_, err = pool.Exec(ctx, mustReadMigration(t, addDatesCheckMigrationPath))
+	require.NoError(t, err)
+	_, err = pool.Exec(ctx, mustReadMigration(t, addFilterIndexesMigrationPath))
 	require.NoError(t, err)
 
 	return pool

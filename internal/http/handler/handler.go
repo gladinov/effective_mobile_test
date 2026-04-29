@@ -24,7 +24,7 @@ type Service interface {
 	UpdatePartialByID(ctx context.Context, subID uuid.UUID, update domain.SubscriptionUpdate) error
 	DeleteByID(ctx context.Context, subID uuid.UUID) error
 	List(ctx context.Context, pagination domain.Pagination) ([]domain.Subscription, error)
-	GetTotal(ctx context.Context, filter domain.FilterTotal) (int, error)
+	GetTotal(ctx context.Context, filter domain.FilterTotal) (int64, error)
 }
 
 type handler struct {
